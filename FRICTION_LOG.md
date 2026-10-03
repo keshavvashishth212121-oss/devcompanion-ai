@@ -1,5 +1,26 @@
 \# Friction Log — DevCompanion AI
 
+## Table of Contents
+
+- [Friction 1: Node.js Not Found](#friction-1-nodejs-not-found)
+- [Friction 2: PowerShell Blocks npm Scripts](#friction-2-powershell-blocks-npm-scripts)
+- [Friction 3: `cd Desktop` Failed from system32](#friction-3-cd-desktop-failed-from-system32)
+- [Friction 4: Copilot Generated Placeholder Code](#day-2-final-status--complete)
+- [Friction 5: `search_symbols` Returned Raw Array](#friction-5-search_symbols-returned-raw-array)
+- [Friction 6: MCP CallToolResult Format Required](#friction-6-mcp-calltoolresult-format-required-3-tools-affected)
+- [Friction 7: Ghost Patch](#friction-7-ghost-patch--file-modified-despite-validation-error)
+- [Friction 8: Tool Expansion](#day-3-tool-expansion--mcp-protocol-mastery)
+- [Friction 9: End-to-End MCP Tool Testing](#day-3-tool-expansion--mcp-protocol-mastery)
+- [Friction 10: First Disk-Level Code Modification](#day-3-tool-expansion--mcp-protocol-mastery)
+- [Friction 11: Ghost State Handling](#friction-11-ghost-state-handling-diagnose-path-validation)
+- [Friction 12: Progress Notifications](#day-6--progress-notifications--real-time-streaming-complete)
+- [Friction 13: Real-Time Streaming](#day-6--progress-notifications--real-time-streaming-complete)
+- [Friction 14: `auditLog` Not Populated in XState Context](#friction-14-auditlog-not-populated-in-xstate-context)
+- [Friction 15: Infinite Wait on DIAGNOSE State](#friction-15-infinite-wait-on-diagnose-state)
+- [Friction 16: MCP Inspector Paginated Toggle Hides Tools](#friction-16-mcp-inspector-paginated-toggle-hides-tools)
+- [Friction 17: Git Not Installed by Default on Windows](#friction-17-git-not-installed-by-default-on-windows)
+- [Friction 18: Git Identity Not Set on Fresh Install](#friction-18-git-identity-not-set-on-fresh-install)
+
 
 \## Day 1 — October 3, 2026
 
