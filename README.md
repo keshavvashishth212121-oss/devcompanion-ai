@@ -115,4 +115,4 @@ See the project's [Friction Log](./FRICTION_LOG.md) for implementation notes, co
 
 ## Author
 
-Built solo by **Keshaw Vashishth** for the **Amazon Developer Hackathon**.
+Built solo by **Keshav Vashishth** for the **Amazon Developer Hackathon**.
