@@ -164,3 +164,29 @@
 - **Root Cause:** Inspector switched to paginated view expecting cursor-based API, but our server has only 7 tools and doesn't implement pagination.
 - **Fix:** Toggled off, refreshed page, reconnected.
 - **Learning:** Pagination is for large tool sets. Not needed for our current 7 tools. If we scale to 50+ tools, we'd implement MCP pagination spec.
+
+### Day 7 — GitHub Packaging & Deployment
+
+#### Friction 17: Git not installed by default on Windows
+- **Error:** `git : The term 'git' is not recognized as the name of a cmdlet, function, script file, or operable program.`
+- **Root Cause:** Git is not bundled with Windows. Unlike Linux/macOS, Windows users must install it manually.
+- **Fix:** Downloaded Git for Windows from git-scm.com, installed with default settings (including "Git from the command line and also from 3rd-party software" for PATH), then restarted VS Code.
+- **Learning:** Just like Node.js, global tools require a fresh terminal session after installation for PATH updates to take effect.
+
+#### Friction 18: Git identity not set on fresh install
+- **Error:** `fatal: unable to auto-detect email address (got 'LENOVO@Keshaw.(none)')`
+- **Root Cause:** Fresh Git installation has no author identity configured. Git refuses to create commits without knowing who the author is.
+- **Fix:** Ran `git config --global user.name` and `git config --global user.email` to set identity.
+- **Learning:** Local Git CLI requires explicit identity configuration on first use, unlike the GitHub UI.
+
+#### Achievement: First GitHub Push
+- Successfully pushed the DevCompanion AI repository to GitHub.
+- Repository: https://github.com/keshavvashishth212121-oss/devcompanion-ai
+- First commit: 12 files, 4358 insertions.
+- Branch: `main`
+- Used Git Credential Manager for OAuth authentication.
+
+#### Time Spent Today
+- Total: ~1.5 hours
+- Git setup + Push: ~1 hour
+- Friction documentation: 30 mins
