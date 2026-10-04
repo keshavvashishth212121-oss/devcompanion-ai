@@ -202,6 +202,18 @@ await server.start({
 	httpStream: {
 		host: '0.0.0.0',
 		port: 8000,
+		cors: {
+			origin: '*',
+			methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+			allowedHeaders: [
+				'Content-Type',
+				'Accept',
+				'Mcp-Session-Id',
+				'MCP-Protocol-Version',
+				'Authorization',
+			],
+			exposedHeaders: ['Mcp-Session-Id'],
+		},
 	},
 });
 
