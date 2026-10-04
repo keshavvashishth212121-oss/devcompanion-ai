@@ -233,3 +233,27 @@
 - **Root Cause:** Two package.json files (root + dashboard).
 - **Fix 2:** Added `turbopack.root` in `next.config.ts`.
 - **Learning:** Next.js 16's Turbopack needs explicit root config when nested in a monorepo-like structure.
+
+### Day 9 — Real MCP Client Wiring (COMPLETE)
+- Created Next.js API route `/api/run-fix` acting as server-side MCP client
+- API route resets sandbox, calls `run_autonomous_fix`, reads final file, returns diff
+- Dashboard now replays REAL state history from MCP response (not mock)
+- Before/After diff panel shows actual file change on disk
+- Verified: `return a - b;` → `return a + b;` autonomously
+- Timestamps in audit log prove genuine execution (not simulated)
+- Time spent: ~3 hours
+
+#### Friction 21: Browser MCP SDK limitations
+- **Issue:** Initial attempt to call MCP server directly from browser caused CORS + timeout issues.
+- **Root Cause:** Browser fetch has CORS constraints and MCP Streamable HTTP needs server-side handling for long-running tools.
+- **Fix:** Created Next.js API route that acts as MCP client server-side, then returns JSON to browser.
+- **Learning:** Browser should never be an MCP client directly. Always use a backend proxy. This is also how production MCP tools are deployed (server-side clients with proper auth).
+
+### Day 10 — Mission Control Dashboard Polish (COMPLETE)
+- Added DiffViewer component (GitHub-style side-by-side diff)
+- Added AuditTimeline component (vertical event timeline with timestamps)
+- Added MetricsPanel component (Fixes Verified, States Traversed, Time Elapsed, Estimated Cost)
+- Integrated all three into the main dashboard layout
+- Dashboard now visually matches production SaaS tools (Vercel, Linear style)
+- Verified end-to-end: Real MCP client → FSM → disk patch → live UI update
+- Time spent: ~3 hours

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import StateMachine from "./components/StateMachine";
+import AuditTimeline from "./components/AuditTimeline";
+import DiffViewer from "./components/DiffViewer";
+import MetricsPanel from "./components/MetricsPanel";
 
 type State =
   | "INTAKE"
@@ -23,6 +26,10 @@ export default function Home() {
   const [diff, setDiff] = useState<{ before: string; after: string } | null>(
     null,
   );
+  const [auditLog, setAuditLog] = useState<
+    Array<{ timestamp: string; to: string; event: string; cost: number }>
+  >([]);
+  const [durationMs, setDurationMs] = useState(0);
 
   async function startRun() {
     if (isRunning) {
@@ -35,10 +42,14 @@ export default function Home() {
     setSessionState("INTAKE");
     setResult(null);
     setDiff(null);
+    setAuditLog([]);
+    setDurationMs(0);
 
     try {
+      const requestStartedAt = Date.now();
       const response = await fetch("/api/run-fix", { method: "POST" });
       const apiResult = await response.json();
+      const requestDuration = Date.now() - requestStartedAt;
 
       if (!apiResult.success) {
         setLogs((currentLogs) => [
@@ -48,14 +59,12 @@ export default function Home() {
         return;
       }
 
-      setResult(apiResult.data);
-      setDiff({ before: apiResult.before, after: apiResult.after });
-
       const completedStates = apiResult.data.stateHistory as string[];
       const auditLog = apiResult.data.auditLog as Array<{
         timestamp: string;
         to: string;
         event: string;
+        cost: number;
       }>;
 
       for (const [index, state] of completedStates.entries()) {
@@ -81,6 +90,10 @@ export default function Home() {
         ...currentLogs,
         "Success: Autonomous fix verified. File changed on disk.",
       ]);
+      setDurationMs(requestDuration);
+      setAuditLog(auditLog);
+      setDiff({ before: apiResult.before, after: apiResult.after });
+      setResult(apiResult.data);
     } catch (error) {
       setLogs((currentLogs) => [
         ...currentLogs,
@@ -187,28 +200,25 @@ export default function Home() {
               </div>
             )}
 
-            {diff && (
-              <div className="mt-4 grid gap-3 text-xs">
-                <div>
-                  <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">
-                    Before
-                  </p>
-                  <pre className="overflow-x-auto rounded-lg border border-red-500/20 bg-slate-950 p-3 font-mono text-red-300">
-                    {diff.before}
-                  </pre>
-                </div>
-                <div>
-                  <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">
-                    After
-                  </p>
-                  <pre className="overflow-x-auto rounded-lg border border-emerald-500/20 bg-slate-950 p-3 font-mono text-emerald-300">
-                    {diff.after}
-                  </pre>
-                </div>
-              </div>
-            )}
           </aside>
         </div>
+
+        {result && (
+          <>
+            <div className="mt-6">
+              <MetricsPanel
+                stateHistory={stateHistory}
+                durationMs={durationMs}
+              />
+            </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                {diff && <DiffViewer before={diff.before} after={diff.after} />}
+              </div>
+              <AuditTimeline auditLog={auditLog} />
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
