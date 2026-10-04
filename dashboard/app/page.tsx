@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import StateMachine from "./components/StateMachine";
 
 type State =
@@ -14,69 +14,81 @@ type State =
   | "DIAGNOSE"
   | "ESCALATE";
 
-const runStates: Array<{ state: State; message: string }> = [
-  { state: "INTAKE", message: "Initializing autonomous fix session..." },
-  { state: "REPRODUCE", message: "Reproducing the reported issue..." },
-  { state: "LOCALIZE", message: "Localizing the root cause..." },
-  { state: "PATCH", message: "Applying the targeted fix..." },
-  { state: "VERIFY", message: "Running verification checks..." },
-  { state: "CRITIQUE", message: "Reviewing the proposed solution..." },
-  { state: "VERIFIED", message: "Fix verified successfully." },
-];
-
-function formatTimestamp(index: number) {
-  const seconds = Math.floor(index / 2);
-  const tenths = index % 2 === 0 ? "00" : "50";
-  return `[00:00:${String(seconds).padStart(2, "0")}.${tenths}]`;
-}
-
 export default function Home() {
   const [sessionState, setSessionState] = useState<State>("INTAKE");
   const [stateHistory, setStateHistory] = useState<string[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [diff, setDiff] = useState<{ before: string; after: string } | null>(
+    null,
+  );
 
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    setSessionState("INTAKE");
-    setStateHistory([]);
-    setLogs([]);
-    setResult(null);
-
-    const timers = runStates.map(({ state, message }, index) =>
-      window.setTimeout(() => {
-        setSessionState(state);
-        setStateHistory((history) => [...history, state]);
-        setLogs((currentLogs) => [
-          ...currentLogs,
-          `${formatTimestamp(index)} State: ${state} - ${message}`,
-        ]);
-
-        if (state === "VERIFIED") {
-          setIsRunning(false);
-          setResult({
-            status: "success",
-            finalState: state,
-            message: "Autonomous fix completed and verified.",
-          });
-        }
-      }, index * 500),
-    );
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, [isRunning]);
-
-  function startRun() {
+  async function startRun() {
     if (isRunning) {
       return;
     }
+
     setIsRunning(true);
+    setLogs(["[API] Connecting to MCP server..."]);
+    setStateHistory([]);
+    setSessionState("INTAKE");
+    setResult(null);
+    setDiff(null);
+
+    try {
+      const response = await fetch("/api/run-fix", { method: "POST" });
+      const apiResult = await response.json();
+
+      if (!apiResult.success) {
+        setLogs((currentLogs) => [
+          ...currentLogs,
+          `Error: ${apiResult.error ?? "Autonomous fix failed."}`,
+        ]);
+        return;
+      }
+
+      setResult(apiResult.data);
+      setDiff({ before: apiResult.before, after: apiResult.after });
+
+      const completedStates = apiResult.data.stateHistory as string[];
+      const auditLog = apiResult.data.auditLog as Array<{
+        timestamp: string;
+        to: string;
+        event: string;
+      }>;
+
+      for (const [index, state] of completedStates.entries()) {
+        setSessionState(state as State);
+        setStateHistory((history) => [...history, state]);
+        setLogs((currentLogs) => [
+          ...currentLogs,
+          `[00:00:${String(index).padStart(2, "0")}.00] State: ${state}`,
+        ]);
+        await new Promise((resolve) => window.setTimeout(resolve, 600));
+      }
+
+      if (auditLog.length > 0) {
+        setLogs((currentLogs) => [
+          ...currentLogs,
+          ...auditLog.map(
+            ({ timestamp, to, event }) =>
+              `[AUDIT ${timestamp}] ${event} -> ${to}`,
+          ),
+        ]);
+      }
+      setLogs((currentLogs) => [
+        ...currentLogs,
+        "Success: Autonomous fix verified. File changed on disk.",
+      ]);
+    } catch (error) {
+      setLogs((currentLogs) => [
+        ...currentLogs,
+        `Error: ${String(error)}`,
+      ]);
+    } finally {
+      setIsRunning(false);
+    }
   }
 
   return (
@@ -171,7 +183,28 @@ export default function Home() {
             {result && (
               <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
                 <span className="font-semibold">Success:</span>{" "}
-                {result.message}
+                Autonomous fix completed.
+              </div>
+            )}
+
+            {diff && (
+              <div className="mt-4 grid gap-3 text-xs">
+                <div>
+                  <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">
+                    Before
+                  </p>
+                  <pre className="overflow-x-auto rounded-lg border border-red-500/20 bg-slate-950 p-3 font-mono text-red-300">
+                    {diff.before}
+                  </pre>
+                </div>
+                <div>
+                  <p className="mb-1 font-semibold uppercase tracking-wide text-slate-500">
+                    After
+                  </p>
+                  <pre className="overflow-x-auto rounded-lg border border-emerald-500/20 bg-slate-950 p-3 font-mono text-emerald-300">
+                    {diff.after}
+                  </pre>
+                </div>
               </div>
             )}
           </aside>

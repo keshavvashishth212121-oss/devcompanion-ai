@@ -211,3 +211,25 @@
 - Total: ~1.5 hours
 - Git setup + Push: ~1 hour
 - Friction documentation: 30 mins
+
+### Day 8 — Web Dashboard & Visual State Machine (COMPLETE)
+- Enabled CORS in MCP server for browser connections
+- Set up Next.js 16 dashboard with TypeScript + Tailwind
+- Built SVG-based state machine visualizer with 9 nodes and live animations
+- Created dashboard with live logs panel + status badges
+- Successfully animated full FSM progression: INTAKE → VERIFIED
+- Time spent: ~3 hours
+
+#### Friction 19: FastMCP CORS configuration not documented clearly
+- **Error:** Browser connections to /mcp were blocked by CORS policy.
+- **Root Cause:** FastMCP server does not include CORS headers by default.
+- **Fix:** Added `cors` middleware via FastMCP's httpApp or options.cors.
+- **Learning:** Production MCP servers need to expose CORS for browser clients. This is not obvious from the spec.
+
+#### Friction 20: Next.js auto-open browser failed + Turbopack lockfile warning
+- **Error 1:** `npm run dev` did not auto-open browser on Windows.
+- **Fix 1:** Manually navigated to http://localhost:3000.
+- **Error 2:** Next.js 16 warned about multiple lockfiles in workspace.
+- **Root Cause:** Two package.json files (root + dashboard).
+- **Fix 2:** Added `turbopack.root` in `next.config.ts`.
+- **Learning:** Next.js 16's Turbopack needs explicit root config when nested in a monorepo-like structure.
