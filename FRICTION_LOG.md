@@ -257,3 +257,69 @@
 - Dashboard now visually matches production SaaS tools (Vercel, Linear style)
 - Verified end-to-end: Real MCP client → FSM → disk patch → live UI update
 - Time spent: ~3 hours
+
+### Day 11 — Alexa+ Voice Interface & Speech Reliability Hardening
+
+#### Summary
+- Built Alexa-style VoiceCommand component using browser Web Speech API
+- Added pulsing UI (idle / listening / speaking states)
+- Integrated voice command → run_autonomous_fix pipeline
+- Added spoken state announcements via speechSynthesis
+- Achieved smooth, deterministic 7-state voice narration after fixing 8 speech bugs
+- Time spent: ~3 hours (most of it debugging Web Speech API quirks)
+
+#### Friction 22: Web Speech API browser compatibility
+- **Error:** Web Speech API (webkitSpeechRecognition) not available in all browsers.
+- **Root Cause:** Chrome/Edge only. Firefox and Safari partial or missing.
+- **Fix:** Added fallback text input in VoiceCommand component.
+- **Learning:** Production voice interfaces MUST have non-voice fallbacks.
+
+#### Friction 23: Speech synthesis stuttering from rapid state transitions
+- **Error:** Each state spoke but was cut off mid-sentence by the next state's speech.
+- **Root Cause:** Replay loop fired every 600ms, but speech takes ~2s per sentence. Overlap.
+- **Fix:** Converted speak() to return a Promise resolved on 'end' event. Awaited inside the loop.
+- **Learning:** Audio is sequential by nature. UI animation synced to audio must await completion.
+
+#### Friction 24: Chrome speechSynthesis onend event not firing (Chromium bug crbug.com/335907)
+- **Error:** Voice got stuck on LOCALIZE. speak() Promise never resolved.
+- **Root Cause:** Chrome's SpeechSynthesisUtterance sometimes fails to fire 'onend'.
+- **Fix:** Added timeout fallback: resolve after max(3000, text.length * 100) ms.
+- **Learning:** Never trust browser onend events unconditionally. Always add timeout guards.
+
+#### Friction 25: Duplicate speak() calls causing speech overlap
+- **Error:** "Starting autonomous fix session" mixed with "State, localize" — skipping REPRODUCE, PATCH, CRITIQUE.
+- **Root Cause:** Both a useEffect and the replay loop were calling speak() with different arguments.
+- **Fix:** Consolidated ALL speech into a single useEffect watching sessionState. Removed speak() from loop.
+- **Learning:** Speech should be REACTIVE to state, not imperatively called inside loops.
+
+#### Friction 26: Overlapping male + female voices (React StrictMode)
+- **Error:** Two voices spoke simultaneously — one male reciting full sentence, one female in background.
+- **Root Cause (1):** React StrictMode in dev mode runs useEffect twice → two speak() calls per state.
+- **Root Cause (2):** Chrome picks unpredictable default voice if utterance.voice not set.
+- **Fix:** Added useRef guards (lastSpokenStateRef, isSpeakingRef) + explicit voice caching via pickVoice().
+- **Learning:** React StrictMode double-effects + browser voice-list inconsistencies compound into nasty bugs.
+
+#### Friction 27: Voice too high-pitched / rushed for a developer tool
+- **Issue:** Default voice was female and rushed (rate 1.15), sounding unserious for a dev tool demo.
+- **Fix:** Prefer deeper male English voices (David/Mark/Guy) via pickVoice(). Set rate=1.0, pitch=0.8.
+- **Learning:** Voice UX matters. Developer tools should sound confident and calm (Alexa+ "expert companion" persona).
+
+#### Friction 28: Stray speak() call reading log lines aloud
+- **Error:** Background voice reading "State: LOCALIZE", "State: VERIFY" over the main speech.
+- **Root Cause:** A leftover speak() call from earlier refactor was passing the log string to speechSynthesis.
+- **Fix:** Audited entire page.tsx with grep. Confirmed only ONE speak() call remains (in the guarded useEffect).
+- **Learning:** Refactors that move logic around often leave orphan calls. Always grep for the function name after a refactor.
+
+#### Friction 29: React useEffect guard dropped state messages (silent failures)
+- **Error:** Some state messages (LOCALIZE, VERIFY, VERIFIED) were silently skipped during playback.
+- **Root Cause:** The `isSpeakingRef.current` guard returned early if a new state arrived during playback. No queue = silent drop.
+- **Fix:** Moved speech INTO the replay loop with `await speak(msg)`. Removed useEffect and ref guards entirely.
+- **Learning:** For strictly ordered async side effects (voice, animation), imperative loops over `await` beat reactive effects. useEffect is fire-and-forget; sequential loops are deterministic.
+
+#### Cross-AI Observation
+- Consulted Gemini for the voice-bug diagnosis. It correctly identified the "stray speak() reading log lines" pattern (Friction 28), but its suggested fix to "remove the timeout fallback" would have reintroduced Friction 24 (Chrome onend bug). Kept the fallback and documented the reasoning. Cross-AI suggestions must be validated against project-specific edge cases.
+
+#### Day 11 Result
+- Voice interface: Fully functional, deterministic, all 7 states spoken in sequence.
+- Demo flow: User says "Fix the addNumbers bug" → agent narrates INTAKE → REPRODUCE → LOCALIZE → PATCH → VERIFY → CRITIQUE → VERIFIED → fix complete.
+- Zero overlaps, zero drops, zero stuttering.

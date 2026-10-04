@@ -5,6 +5,7 @@ import StateMachine from "./components/StateMachine";
 import AuditTimeline from "./components/AuditTimeline";
 import DiffViewer from "./components/DiffViewer";
 import MetricsPanel from "./components/MetricsPanel";
+import VoiceCommand, { speak } from "./components/VoiceCommand";
 
 type State =
   | "INTAKE"
@@ -31,13 +32,13 @@ export default function Home() {
   >([]);
   const [durationMs, setDurationMs] = useState(0);
 
-  async function startRun() {
+  async function startRun(initialLog = "[API] Connecting to MCP server...") {
     if (isRunning) {
       return;
     }
 
     setIsRunning(true);
-    setLogs(["[API] Connecting to MCP server..."]);
+    setLogs([initialLog]);
     setStateHistory([]);
     setSessionState("INTAKE");
     setResult(null);
@@ -59,7 +60,7 @@ export default function Home() {
         return;
       }
 
-      const completedStates = apiResult.data.stateHistory as string[];
+      const stateHistory = apiResult.data.stateHistory as string[];
       const auditLog = apiResult.data.auditLog as Array<{
         timestamp: string;
         to: string;
@@ -67,14 +68,31 @@ export default function Home() {
         cost: number;
       }>;
 
-      for (const [index, state] of completedStates.entries()) {
+      const messages: Record<string, string> = {
+        INTAKE: "Starting autonomous fix session",
+        REPRODUCE: "Reproducing the reported issue",
+        LOCALIZE: "Localizing the root cause",
+        PATCH: "Applying the targeted fix",
+        VERIFY: "Running verification checks",
+        CRITIQUE: "Running adversarial critique",
+        VERIFIED: "Fix verified successfully. Bug fixed.",
+        DIAGNOSE: "Diagnosis needed. Escalating.",
+        ESCALATE: "Escalating to human review.",
+      };
+
+      for (let i = 0; i < stateHistory.length; i++) {
+        const state = stateHistory[i];
         setSessionState(state as State);
         setStateHistory((history) => [...history, state]);
         setLogs((currentLogs) => [
           ...currentLogs,
-          `[00:00:${String(index).padStart(2, "0")}.00] State: ${state}`,
+          `[00:00:0${i}.00] State: ${state}`,
         ]);
-        await new Promise((resolve) => window.setTimeout(resolve, 600));
+        const msg = messages[state];
+        if (msg) {
+          await speak(msg);
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
       }
 
       if (auditLog.length > 0) {
@@ -104,6 +122,20 @@ export default function Home() {
     }
   }
 
+  async function handleVoiceCommand(transcript: string) {
+    const voiceLog = `[VOICE] User said: ${transcript}`;
+    if (/fix|bug/i.test(transcript)) {
+      await startRun(voiceLog);
+      return;
+    }
+
+    setLogs((currentLogs) => [...currentLogs, voiceLog]);
+    setLogs((currentLogs) => [
+      ...currentLogs,
+      "Try saying: Fix the addNumbers bug",
+    ]);
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col">
@@ -122,7 +154,7 @@ export default function Home() {
           </div>
           <button
             type="button"
-            onClick={startRun}
+            onClick={() => void startRun()}
             disabled={isRunning}
             className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           >
@@ -132,6 +164,16 @@ export default function Home() {
 
         <div className="grid flex-1 gap-6 lg:grid-cols-3">
           <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-2">
+            <div className="mb-6 rounded-xl border border-slate-800 bg-slate-950/60 p-5">
+              <h2 className="mb-4 text-center text-sm font-semibold text-white">
+                Alexa+ Voice Interface
+              </h2>
+              <VoiceCommand
+                onCommand={handleVoiceCommand}
+                disabled={isRunning}
+                currentState={sessionState}
+              />
+            </div>
             <div className="mb-3 flex items-center justify-between px-1">
               <div>
                 <h2 className="font-semibold text-white">Execution flow</h2>
