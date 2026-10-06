@@ -36,6 +36,21 @@ Agent Plane (XState FSM) ───────► Presentation Plane (progress u
     ▼
 Execution Plane (sandbox tools) ─► Observability Plane (audit log)
 ```
+## Screenshots
+
+### Live Dashboard — Autonomous Fix in Progress
+![Dashboard with live state machine](docs/dashboard.png)
+
+### State Machine Animating in Real-Time
+![State machine in progress](docs/state-machine-live.png)
+
+### Before/After Diff — Real Disk Change
+![Diff viewer showing the fix](docs/diff.png)
+
+### Metrics & Audit Timeline — Every Transition Logged
+![Audit timeline with timestamps](docs/metrics-audit.png)
+
+---
 
 ## The 9-State Machine
 
