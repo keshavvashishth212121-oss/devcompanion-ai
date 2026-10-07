@@ -36,7 +36,8 @@
 - [Friction 28: Stray `speak()` Call Reading Log Lines Aloud](#friction-28-stray-speak-call-reading-log-lines-aloud)
 - [Friction 29: React useEffect Guard Dropped State Messages (Silent Failures)](#friction-29-react-useeffect-guard-dropped-state-messages-silent-failures)
 - [Cross-AI Observation](#cross-ai-observation)
-
+- [Friction 30: AWS UPI AutoPay and ₹15,000 Mandate Confusion](#friction-30-aws-upi-autopay-and-15000-mandate-confusion)
+- [Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed](#friction-31-hackathon-faq-clarification--no-physical-alexa-device-needed)
 ---
 
 ## Day 1 — October 3, 2026
@@ -294,7 +295,25 @@
 - **Zero overlaps, zero drops, zero stuttering.**
 
 ---
+---
 
+## Day 12 — October 7, 2026
+
+### Friction 30: AWS UPI AutoPay and ₹15,000 Mandate Confusion
+
+- **Error:** During AWS signup, the UPI AutoPay screen showed a mandate limit of ₹15,000, causing panic about a massive charge.
+- **Root Cause:** Misunderstanding the difference between an AutoPay *limit* and an actual charge. Also, the ₹2 refundable verification fee wasn't clearly explained upfront.
+- **Fix:** Proceeded with UPI AutoPay, aware that ₹2 is only a temporary hold for identity verification. Redemeed $150 Hackathon credits + $100 Free Tier credits (total $250), ensuring all usage is covered.
+- **Learning:** AWS India uses UPI AutoPay limits as a safety mechanism, not an immediate charge. Credits must be redeemed immediately after signup to offset any potential costs. Also set up a $1 budget alert to catch surprise bills.
+
+### Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed
+
+- **Error:** Uncertainty about whether a physical Alexa+ device or hardware was required for the Alexa+ track.
+- **Root Cause:** The track description mentions building an MCP server or Agent Skill, but doesn't explicitly state hardware requirements in the main rules.
+- **Fix:** Found the official Hackathon FAQ which clearly states: "Alexa+: build a self-hosted MCP server or Agent Skill, or a simulated experience - no physical device needed."
+- **Learning:** Always check the FAQ and official community forums for hardware/software track constraints. Our dashboard's Web Speech API voice interface perfectly satisfies the "simulated experience" criteria, making the project fully compliant with track rules.
+
+---
 ## Summary Statistics
 
 - **Total frictions documented:** 29
