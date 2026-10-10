@@ -5,6 +5,8 @@
 [![State machine](https://img.shields.io/badge/State%20Machine-XState-f59e0b)](https://xstate.js.org/)
 [![Language](https://img.shields.io/badge/Language-TypeScript-3178c6)](https://www.typescriptlang.org/)
 
+> **Status: 🔒 Feature Frozen — Oct 10, 2026.** All development locked. Focus: demo video and submission.
+
 ## Elevator Pitch
 
 DevCompanion AI is a self-hosted [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that autonomously detects, fixes, and verifies software bugs. A deterministic nine-state [XState](https://xstate.js.org/) finite state machine (FSM) controls every run, records an audit trail, and makes retry or escalation decisions explicit.
