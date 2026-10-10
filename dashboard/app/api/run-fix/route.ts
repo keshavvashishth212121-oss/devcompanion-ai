@@ -20,7 +20,11 @@ export async function POST() {
   return a - b;
 }`;
 
-		writeFileSync(sandboxPath, buggyContent, 'utf-8');
+		try {
+			writeFileSync(sandboxPath, buggyContent, 'utf-8');
+		} catch (error) {
+			console.warn('Unable to reset sandbox file:', error);
+		}
 
 		const client = new Client({
 			name: 'devcompanion-dashboard',
@@ -46,13 +50,22 @@ export async function POST() {
 		}
 
 		const parsedResult = JSON.parse(content[0].text);
-		const fixedContent = readFileSync(sandboxPath, 'utf-8');
+		let fixedContent = '';
+		try {
+			fixedContent = readFileSync(sandboxPath, 'utf-8');
+		} catch (error) {
+			console.warn('Unable to read fixed sandbox file:', error);
+			fixedContent =
+				'// File not accessible in cloud deployment. Fix is applied on the MCP server.';
+		}
 
 		return NextResponse.json({
 			success: true,
 			data: parsedResult,
 			before: buggyContent,
-			after: fixedContent,
+			after:
+				fixedContent ||
+				'// File not accessible in cloud deployment. Fix is applied on the MCP server.',
 		});
 	} catch (error) {
 		return NextResponse.json(

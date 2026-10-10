@@ -201,7 +201,7 @@ await server.start({
 	transportType: 'httpStream',
 	httpStream: {
 		host: '0.0.0.0',
-		port: 8000,
+		port: parseInt(process.env.PORT || '8000', 10),
 		cors: {
 			origin: '*',
 			methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
