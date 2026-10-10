@@ -49,8 +49,11 @@ Execution Plane (sandbox tools) ─► Observability Plane (audit log)
 ### Before/After Diff — Real Disk Change
 ![Diff viewer showing the fix](docs/diff.png)
 
-### Metrics & Audit Timeline — Every Transition Logged
-![Audit timeline with timestamps](docs/metrics-audit.png)
+### Time-Travel Scrubber & MCP Protocol Stream
+![Scrubber and protocol stream](docs/scrubber.png)
+
+### Success Pulse — Autonomous Fix Verified
+![Success pulse animation](docs/success-pulse.png)
 
 ---
 
@@ -106,6 +109,18 @@ The server uses **Streamable HTTP** for MCP communication.
 | `run_tests` | Runs a supplied test or verification command in an optional working directory. |
 | `apply_patch` | Replaces matching source content with the proposed fix. |
 | `run_autonomous_fix` | Runs the complete bug-to-verified-fix loop and streams live state progress. |
+
+## Key Features
+
+- **Deterministic 9-state XState FSM** — The LLM proposes, the state machine disposes.
+- **Self-hosted MCP server** — Streamable HTTP transport, spec 2025-11-25.
+- **Real disk-level code modification** — Agent reads, patches, verifies files on disk.
+- **Event-sourced audit log** — Every transition recorded with millisecond timestamps.
+- **Time-Travel Replay Scrubber** — Drag through any past run, second-by-second.
+- **Live MCP Protocol Stream** — Watch raw JSON-RPC messages flow in real time.
+- **Alexa+ Voice Interface** — Web Speech API for voice commands and narration.
+- **Success Pulse Animation** — Cinematic visual confirmation on verified fixes.
+- **Cloud deployment** — Vercel (dashboard) + Railway (MCP server) with graceful fallback.
 
 ## How It Works
 
