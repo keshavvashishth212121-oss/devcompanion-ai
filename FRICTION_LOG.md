@@ -38,30 +38,41 @@
 - [Cross-AI Observation](#cross-ai-observation)
 - [Friction 30: AWS UPI AutoPay and ₹15,000 Mandate Confusion](#friction-30-aws-upi-autopay-and-15000-mandate-confusion)
 - [Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed](#friction-31-hackathon-faq-clarification--no-physical-alexa-device-needed)
+- [Friction 32: ENOENT on Vercel Deployment Due to Root Directory Scope](#friction-32-enoent-on-vercel-deployment-due-to-root-directory-scope)
+
 ---
 
 ## Day 1 — October 3, 2026
 
 ### Friction 1: Node.js Not Found
 
-- **Error:** Running `node -v` gave `CommandNotFoundException`
-- **Root Cause:** Node.js was not installed on my Windows laptop.
-- **Fix:** Downloaded Node.js LTS from nodejs.org, installed, restarted PowerShell.
-- **Learning:** Always restart the terminal after installing global tools. Windows PATH updates only apply to new terminal sessions.
+- **Task Attempted:** I tried to verify the Node.js installation before starting the project.
+- **Steps Taken:** I ran `node -v` in PowerShell, received `CommandNotFoundException`, installed Node.js LTS from nodejs.org, and restarted PowerShell.
+- **Expected:** The `node -v` command should have printed the installed Node.js version.
+- **Actual:** PowerShell reported that `node` was not recognized because Node.js was not installed.
+- **Severity:** Blocker
+- **Workaround:** I installed the Node.js LTS distribution and opened a new terminal so the PATH update would take effect.
+- **Actionable Suggestion:** Add a Windows prerequisite check to the project setup instructions that gives the required Node.js version and links directly to the LTS installer.
 
 ### Friction 2: PowerShell Blocks npm Scripts
 
-- **Error:** Running `npm -v` gave `PSSecurityException: running scripts is disabled on this system`
-- **Root Cause:** Windows PowerShell's default execution policy blocks `.ps1` scripts for security.
-- **Fix:** Ran `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`, confirmed with `Y`.
-- **Learning:** Windows PowerShell needs explicit permission to run local scripts. `RemoteSigned` allows local scripts while still blocking unsigned remote ones — a good security default.
+- **Task Attempted:** I tried to verify npm after installing Node.js.
+- **Steps Taken:** I ran `npm -v`, reviewed the PowerShell error, and changed the current user's execution policy to `RemoteSigned`.
+- **Expected:** PowerShell should have executed npm and printed its version.
+- **Actual:** PowerShell raised `PSSecurityException: running scripts is disabled on this system`.
+- **Severity:** Major
+- **Workaround:** I ran `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` and confirmed the change.
+- **Actionable Suggestion:** Add a Windows troubleshooting note explaining this exact error and recommend the least-privileged `CurrentUser` scope rather than a machine-wide policy change.
 
 ### Friction 3: `cd Desktop` Failed from system32
 
-- **Error:** `cd : Cannot find path 'C:\Windows\system32\Desktop' because it does not exist.`
-- **Root Cause:** PowerShell was opened in `C:\Windows\system32` (default for admin mode). Relative path `Desktop` looked for `system32\Desktop`.
-- **Fix:** Used `cd $HOME\Desktop` to jump directly to the user's Desktop folder.
-- **Learning:** In PowerShell, always check `pwd` (present working directory) before using relative paths. Use `$HOME` for the user's profile folder.
+- **Task Attempted:** I tried to change to the Desktop directory before cloning or creating the project.
+- **Steps Taken:** I ran `cd Desktop` from an elevated PowerShell window, inspected the working directory, and then used `cd $HOME\Desktop`.
+- **Expected:** PowerShell should have entered the user's Desktop folder.
+- **Actual:** It reported `Cannot find path 'C:\Windows\system32\Desktop' because it does not exist.`
+- **Severity:** Minor
+- **Workaround:** I used the absolute path based on `$HOME` instead of a relative path from `C:\Windows\system32`.
+- **Actionable Suggestion:** Include a setup command that first prints the working directory and uses `$HOME\Desktop` for Windows examples so elevated-shell defaults do not cause path errors.
 
 ---
 
@@ -69,10 +80,13 @@
 
 ### Friction 4: Copilot Generated Placeholder Code
 
-- **Error:** `server.ts` was generated with `void repoPath; void issueDescription;` placeholders inside the `start_fix_run` handler.
-- **Root Cause:** GitHub Copilot generated a scaffold without wiring the state machine. It defaulted to placeholder code when the prompt did not explicitly specify the integration.
-- **Fix:** Prompted Copilot again with explicit instructions to import `createActor` from `xstate` and call `actor.start()` inside the handler.
-- **Learning:** AI code generators need **contract-first prompts**. Never assume they'll infer integration points. Always specify the exact function calls and return shapes.
+- **Task Attempted:** I tried to implement the `start_fix_run` handler that launches the autonomous fix state machine.
+- **Steps Taken:** I reviewed the generated `server.ts`, found `void repoPath; void issueDescription;` placeholders, and reprompted Copilot with the required `createActor` and `actor.start()` integration.
+- **Expected:** The generated handler should have connected its inputs to the state machine and returned a real result.
+- **Actual:** The handler compiled as a scaffold but ignored both inputs and did not start the state machine.
+- **Severity:** Major
+- **Workaround:** I used a contract-first prompt specifying imports, function calls, state-machine startup, and the expected response shape.
+- **Actionable Suggestion:** Add an MCP server scaffold template that wires handler parameters into a runnable example and marks placeholder statements as explicit TODOs or compile-time failures.
 
 ---
 
@@ -80,39 +94,63 @@
 
 ### Friction 5: `search_symbols` Returned Raw Array
 
-- **Error:** `Tool 'search_symbols' execution failed: Invalid input: expected object, received array`
-- **Root Cause:** The execute function returned a raw array (`[{ filePath, lineNumber }]`), but FastMCP expects a JSON object.
-- **Fix:** Wrapped the return value in `{ status: 'success', matches: matches }`.
-- **Learning:** MCP tools must never return raw arrays or primitives. Always wrap results in a named object.
+- **Task Attempted:** I tried to expose symbol search results through the `search_symbols` MCP tool.
+- **Steps Taken:** I returned an array of `{ filePath, lineNumber }` objects, called the tool, and inspected the validation error.
+- **Expected:** The MCP tool should have accepted the array as its result.
+- **Actual:** It failed with `Tool 'search_symbols' execution failed: Invalid input: expected object, received array`.
+- **Severity:** Major
+- **Workaround:** I wrapped the array in a named object: `{ status: 'success', matches }`.
+- **Actionable Suggestion:** Update the FastMCP tool-result documentation and TypeScript types to show that top-level arrays and primitives are rejected, with a valid object example for search results.
 
 ### Friction 6: MCP CallToolResult Format Required
 
-- **Error:** `expected array, path: ['content']` and `unrecognized_keys: ['status', 'matches']`
-- **Root Cause:** MCP protocol strictly requires every tool to return a `CallToolResult` object with a `content` array — not a plain custom object.
-- **Fix:** Wrapped every return in `{ content: [{ type: 'text', text: JSON.stringify(...) }] }`. Applied this to `search_symbols`, `run_tests`, and `apply_patch`.
-- **Learning:** This is a **recurring MCP protocol pattern**. Every custom tool response must follow this exact shape. Recommended creating an `asMcpResult()` helper function to avoid boilerplate.
+- **Task Attempted:** I tried to return custom JSON objects from several MCP tools.
+- **Steps Taken:** I returned `{ status, matches }`, read the protocol validation errors, and changed each tool to return a `CallToolResult` with a `content` array containing a text item.
+- **Expected:** A JSON object with the tool's domain fields should have been accepted directly.
+- **Actual:** Validation reported `expected array, path: ['content']` and `unrecognized_keys: ['status', 'matches']`.
+- **Severity:** Major
+- **Workaround:** I returned `{ content: [{ type: 'text', text: JSON.stringify(payload) }] }` from `search_symbols`, `run_tests`, and `apply_patch`.
+- **Actionable Suggestion:** Add a shared `asMcpResult()` helper to the SDK examples and make the validation error identify the required `content` structure with a complete valid response.
 
 ### Friction 7: Ghost Patch — File Modified Despite Validation Error
 
-- **Error:** After fixing `apply_patch`, it returned `{"status": "not_found"}` on the target file.
-- **Root Cause:** During a previous failed attempt (Zod validation error), the file's `writeFileSync` had ALREADY executed. MCP tool logic runs BEFORE the response is validated by the protocol layer.
-- **Fix:** Used `read_file` to verify the actual state of the file. Confirmed the earlier patch had succeeded silently.
-- **Learning:** In distributed systems, side effects (like file writes) can occur even if the response is rejected. MCP tools should ideally validate inputs first, then perform side effects, then return valid CallToolResult.
+- **Task Attempted:** I tried to apply a patch and determine whether the requested file modification succeeded.
+- **Steps Taken:** The MCP call returned `{"status":"not_found"}` after a validation failure, so I used `read_file` to inspect the target file and compare its contents.
+- **Expected:** A failed tool response should have meant that no file mutation occurred.
+- **Actual:** `writeFileSync` had already modified the file before the protocol layer rejected the invalid response.
+- **Severity:** Major
+- **Workaround:** I verified the filesystem state directly before retrying and treated the file contents, rather than the response status, as authoritative.
+- **Actionable Suggestion:** Validate tool inputs and construct the protocol response before committing side effects, or expose transactional/rollback guidance for tools that perform filesystem writes.
 
 ### Friction 8: Tool Expansion — Day 3 MCP Protocol Mastery
 
-- **Summary:** Added four new MCP tools (`read_file`, `search_symbols`, `run_tests`, `apply_patch`) and extracted them into a reusable `tools.ts` file.
-- **Learning:** Separation of concerns (tools module vs server module) makes the codebase maintainable. Each tool function is now pure and testable.
+- **Task Attempted:** I tried to expand the server with reusable file, search, test, and patch capabilities.
+- **Steps Taken:** I added `read_file`, `search_symbols`, `run_tests`, and `apply_patch`, then extracted their implementations into a reusable `tools.ts` module.
+- **Expected:** New tools should have been easy to add without coupling their implementations to server startup code.
+- **Actual:** The initial server structure did not provide clear separation between tool registration and tool logic, making expansion harder to maintain.
+- **Severity:** Documentation
+- **Workaround:** I separated tool implementations from server wiring and kept each function independently testable.
+- **Actionable Suggestion:** Provide an official multi-tool project layout showing separate registration, implementation, validation, and test modules for an MCP server.
 
 ### Friction 9: End-to-End MCP Tool Testing
 
-- **Summary:** Tested all 6 tools via MCP Inspector over Streamable HTTP transport.
-- **Learning:** The Inspector is indispensable for debugging MCP servers. It shows request/response payloads, SSE events, and tool schemas in real time.
+- **Task Attempted:** I tried to validate all MCP tools over the actual Streamable HTTP transport.
+- **Steps Taken:** I connected MCP Inspector, invoked all six tools, and reviewed request payloads, response payloads, SSE events, and schemas.
+- **Expected:** The project documentation should have provided a clear, standard end-to-end test path.
+- **Actual:** I had to discover that MCP Inspector was the most useful way to observe the complete protocol exchange.
+- **Severity:** Documentation
+- **Workaround:** I used MCP Inspector as the integration test client and manually checked every tool over Streamable HTTP.
+- **Actionable Suggestion:** Add an official “test a server end to end” guide with MCP Inspector commands, expected SSE events, and a checklist for tool schemas and `CallToolResult` responses.
 
 ### Friction 10: First Disk-Level Code Modification
 
-- **Summary:** Ran the FIRST successful end-to-end fix: `read_file` → `apply_patch` → `read_file` verified the file changed on disk from `return a - b;` to `return a + b;`.
-- **Learning:** This was the moment the agent proved it could actually modify code, not just describe it.
+- **Task Attempted:** I tried to prove that the agent could modify a source file rather than only describe a fix.
+- **Steps Taken:** I called `read_file`, applied a patch changing `return a - b;` to `return a + b;`, and called `read_file` again to verify the persisted contents.
+- **Expected:** The MCP workflow should have made the disk mutation and verification path explicit.
+- **Actual:** The first successful mutation required assembling the read-patch-read workflow manually.
+- **Severity:** Documentation
+- **Workaround:** I used a three-step verification sequence and treated the final file read as the success criterion.
+- **Actionable Suggestion:** Publish a canonical MCP example that combines read, patch, and post-write verification, including guidance on reporting the before-and-after content.
 
 ---
 
@@ -120,10 +158,13 @@
 
 ### Friction 11: Ghost State Handling — DIAGNOSE Path Validation
 
-- **Scenario:** Ran the autonomous loop on an already-patched sandbox, which caused DIAGNOSE instead of VERIFIED.
-- **Root Cause:** `applyFix` couldn't find the original buggy string to replace.
-- **Fix:** Reset sandbox to buggy state and re-ran. State machine correctly handled both paths (failure → DIAGNOSE, success → VERIFIED).
-- **Learning:** This proved the FSM's guards are working. In production, this prevents silent failures or infinite loops.
+- **Task Attempted:** I tried to run the autonomous fix loop against a sandbox that had already been patched.
+- **Steps Taken:** I ran the loop, observed the DIAGNOSE path when the original buggy text was absent, reset the sandbox to its buggy state, and reran the workflow.
+- **Expected:** The workflow should have handled an already-fixed file without appearing to fail or requiring manual state inspection.
+- **Actual:** `applyFix` could not find the original buggy string, so the state machine entered DIAGNOSE instead of VERIFIED.
+- **Severity:** Major
+- **Workaround:** I reset the fixture before testing and verified both the failure/diagnosis and successful verification paths.
+- **Actionable Suggestion:** Include an idempotency test fixture and document the expected terminal state when a requested change is already present.
 
 ---
 
@@ -131,36 +172,53 @@
 
 ### Friction 12: Progress Notifications — Day 6 Real-Time Streaming
 
-- **Summary:** Added `run_autonomous_fix` MCP tool that drives the full FSM. Wired `context.reportProgress()` to emit MCP `notifications/progress` over SSE.
-- **Learning:** Live progress streaming transforms a black-box tool call into an observable event stream. Clients see state transitions as they happen.
+- **Task Attempted:** I tried to expose state-machine progress while a long-running MCP tool was executing.
+- **Steps Taken:** I added `run_autonomous_fix`, wired `context.reportProgress()` to MCP `notifications/progress`, and observed transitions over SSE.
+- **Expected:** A client should have received meaningful progress events rather than waiting for one opaque final response.
+- **Actual:** Progress streaming required additional protocol wiring that was not obvious from the initial tool implementation.
+- **Severity:** Documentation
+- **Workaround:** I connected the state transitions to progress notifications and inspected the resulting SSE stream.
+- **Actionable Suggestion:** Add a complete progress-reporting example that maps long-running workflow states to `notifications/progress` events and documents the client subscription behavior.
 
 ### Friction 13: Real-Time Streaming Issues
 
-- **Error:** `MCP request 3 timed out after 6000ms` in MCP Inspector.
-- **Root Cause:** MCP Inspector has a hardcoded 6-second timeout for tool calls. Our autonomous loop exceeded it because mock services had 1-second delays.
-- **Fix:** Removed artificial delays from mock services. Real long-running tools will need the client to respect SSE keep-alive.
-- **Learning:** Client timeout limits are a real constraint. Design tools for fast completion or use SSE stream progress to keep connections alive.
+- **Task Attempted:** I tried to run the autonomous tool through MCP Inspector with realistic mock-service delays.
+- **Steps Taken:** I ran the tool, received the timeout, removed artificial one-second delays from mock services, and used progress streaming for observability.
+- **Expected:** The Inspector should have allowed the tool to complete while SSE progress events were being emitted.
+- **Actual:** It failed with `MCP request 3 timed out after 6000ms` because the Inspector has a hardcoded six-second tool-call timeout.
+- **Severity:** Major
+- **Workaround:** I shortened the mock workflow for Inspector testing and treated SSE keep-alive support as necessary for genuinely long-running tools.
+- **Actionable Suggestion:** Make the Inspector timeout configurable, display the active timeout in the UI, and document how clients should handle long-running calls with progress events.
 
 ### Friction 14: `auditLog` Not Populated in XState Context
 
-- **Error:** `run_autonomous_fix` output showed `"auditLog": []`.
-- **Root Cause:** XState v5 requires `assign()` actions to update context. The transitions weren't recording history.
-- **Fix:** Added `entry: assign({ auditLog: ... })` to all 9 states.
-- **Learning:** Event sourcing requires explicit context mutation in XState. Every state entry must append to the ledger.
+- **Task Attempted:** I tried to return a complete state-transition audit log from the autonomous fix machine.
+- **Steps Taken:** I inspected the output showing an empty log, reviewed the XState transitions, and added `assign()` actions on entry to all nine states.
+- **Expected:** Every state transition should have appended an entry to the returned audit log.
+- **Actual:** `run_autonomous_fix` returned `"auditLog": []` because transitions did not mutate the XState v5 context.
+- **Severity:** Major
+- **Workaround:** I used `entry: assign({ auditLog: ... })` for each state so the context recorded the transition history.
+- **Actionable Suggestion:** Add an XState v5 integration example that demonstrates context mutation and audit-log accumulation for every state entry.
 
 ### Friction 15: Infinite Wait on DIAGNOSE State
 
-- **Error:** Tool hung for 60 seconds when the FSM entered DIAGNOSE (bug already fixed).
-- **Root Cause:** The `setInterval` inside `run_autonomous_fix` only resolved on VERIFIED or ESCALATE. DIAGNOSE was not treated as a terminal state.
-- **Fix:** Added DIAGNOSE to resolve conditions and a 10s max wait timer.
-- **Learning:** Idempotency is crucial. The system gracefully degrades (DIAGNOSE) instead of hanging.
+- **Task Attempted:** I tried to complete the autonomous tool when the state machine entered DIAGNOSE because the bug was already fixed.
+- **Steps Taken:** I reproduced the hang, inspected the interval completion conditions, added DIAGNOSE as a terminal condition, and added a ten-second maximum wait.
+- **Expected:** The tool should have returned a diagnosis promptly instead of waiting indefinitely.
+- **Actual:** It hung for 60 seconds because the polling loop only resolved on VERIFIED or ESCALATE.
+- **Severity:** Blocker
+- **Workaround:** I treated DIAGNOSE as a terminal state and added a bounded timeout to prevent unbounded waits.
+- **Actionable Suggestion:** Add SDK guidance and linting patterns for terminal-state coverage and require an explicit timeout for polling loops in long-running MCP tools.
 
 ### Friction 16: MCP Inspector Paginated Toggle Hides Tools
 
-- **Scenario:** Toggled "Paginated" in MCP Inspector, tools list became empty.
-- **Root Cause:** Inspector switched to paginated view expecting cursor-based API, but our server has only 7 tools and doesn't implement pagination.
-- **Fix:** Toggled off, refreshed page, reconnected.
-- **Learning:** Pagination is for large tool sets. Not needed for our current 7 tools. If we scale to 50+ tools, we'd implement MCP pagination spec.
+- **Task Attempted:** I tried to inspect the server tools after enabling the Inspector's Paginated option.
+- **Steps Taken:** I toggled pagination, observed an empty tool list, disabled the option, refreshed the page, and reconnected.
+- **Expected:** The Inspector should have shown the available tools or explained that the server does not implement pagination.
+- **Actual:** The tool list became empty because the Inspector expected cursor-based pagination that this seven-tool server did not implement.
+- **Severity:** Minor
+- **Workaround:** I disabled pagination for the current server and reconnected.
+- **Actionable Suggestion:** Show a compatibility warning when pagination is enabled against a server that does not return cursors, rather than rendering an empty tools list.
 
 ---
 
@@ -168,17 +226,23 @@
 
 ### Friction 17: Git Not Installed by Default on Windows
 
-- **Error:** `git : The term 'git' is not recognized as the name of a cmdlet, function, script file, or operable program.`
-- **Root Cause:** Git is not bundled with Windows. Unlike Linux/macOS, Windows users must install it manually.
-- **Fix:** Downloaded Git for Windows from git-scm.com, installed with default settings (including "Git from the command line and also from 3rd-party software" for PATH), then restarted VS Code.
-- **Learning:** Just like Node.js, global tools require a fresh terminal session after installation for PATH updates to take effect.
+- **Task Attempted:** I tried to inspect and push the project repository from Windows.
+- **Steps Taken:** I ran a Git command, installed Git for Windows with command-line PATH integration, restarted VS Code, and retried the command.
+- **Expected:** Git should have been available from the development environment.
+- **Actual:** PowerShell reported `git : The term 'git' is not recognized as the name of a cmdlet, function, script file, or operable program.`
+- **Severity:** Blocker
+- **Workaround:** I installed Git for Windows and opened a fresh VS Code session so the PATH change was loaded.
+- **Actionable Suggestion:** Add Git to the Windows prerequisites and provide a startup diagnostic that checks `node`, `npm`, and `git` before the first repository task.
 
 ### Friction 18: Git Identity Not Set on Fresh Install
 
-- **Error:** `fatal: unable to auto-detect email address (got 'LENOVO@Keshaw.(none)')`
-- **Root Cause:** Fresh Git installation has no author identity configured. Git refuses to create commits without knowing who the author is.
-- **Fix:** Ran `git config --global user.name` and `git config --global user.email` to set identity.
-- **Learning:** Local Git CLI requires explicit identity configuration on first use, unlike the GitHub UI.
+- **Task Attempted:** I tried to create the first Git commit after installing Git.
+- **Steps Taken:** I ran `git commit`, read the identity error, and configured `user.name` and `user.email` globally.
+- **Expected:** Git should have created the commit using the authenticated GitHub account or prompted for identity during setup.
+- **Actual:** It failed with `fatal: unable to auto-detect email address (got 'LENOVO@Keshaw.(none)')`.
+- **Severity:** Major
+- **Workaround:** I ran `git config --global user.name` and `git config --global user.email` with the intended author values.
+- **Actionable Suggestion:** Add a first-commit checklist that checks `git config user.name` and `git config user.email` and provides safe commands to configure them before committing.
 
 ### Achievement: First GitHub Push
 
@@ -194,19 +258,23 @@
 
 ### Friction 19: FastMCP CORS Configuration Not Documented Clearly
 
-- **Error:** Browser connections to `/mcp` were blocked by CORS policy.
-- **Root Cause:** FastMCP server does not include CORS headers by default. Documentation is sparse on browser-client configuration.
-- **Fix:** Added `cors` middleware via FastMCP's `httpApp` or `options.cors`.
-- **Learning:** Production MCP servers need to expose CORS for browser clients. This is not obvious from the spec.
+- **Task Attempted:** I tried to connect a browser client to the FastMCP `/mcp` endpoint.
+- **Steps Taken:** I attempted the browser request, inspected the CORS failure, and configured CORS middleware through FastMCP's HTTP application options.
+- **Expected:** A browser client should have been able to call the MCP endpoint when the server was intentionally exposed to that origin.
+- **Actual:** Browser requests were blocked by CORS because the default FastMCP server did not emit the required headers.
+- **Severity:** Major
+- **Workaround:** I added CORS configuration through FastMCP's `httpApp` or `options.cors` support.
+- **Actionable Suggestion:** Add a browser-client CORS section to FastMCP documentation with explicit allowed-origin, methods, headers, credentials, and preflight examples.
 
 ### Friction 20: Next.js Auto-Open Browser Failed + Turbopack Lockfile Warning
 
-- **Error 1:** `npm run dev` did not auto-open browser on Windows.
-- **Fix 1:** Manually navigated to `http://localhost:3000`.
-- **Error 2:** Next.js 16 warned about multiple lockfiles in the workspace.
-- **Root Cause:** Two `package.json` files (root + dashboard).
-- **Fix 2:** Added `turbopack.root` in `next.config.ts`.
-- **Learning:** Next.js 16's Turbopack needs explicit root config when nested in a monorepo-like structure.
+- **Task Attempted:** I tried to start the nested Next.js dashboard and open it in a browser without additional configuration.
+- **Steps Taken:** I ran `npm run dev`, opened `http://localhost:3000` manually when no browser opened, and configured `turbopack.root` after reviewing the lockfile warning.
+- **Expected:** Next.js should have opened the development URL and identified the dashboard as the intended workspace root.
+- **Actual:** The browser did not open automatically, and Next.js 16 warned about multiple lockfiles in the workspace.
+- **Severity:** Minor
+- **Workaround:** I navigated to the URL manually and set the Turbopack root in `next.config.ts`.
+- **Actionable Suggestion:** Document expected auto-open behavior on Windows and add a monorepo example showing how to set `turbopack.root` when a nested app has its own `package.json`.
 
 ---
 
@@ -214,10 +282,13 @@
 
 ### Friction 21: Browser MCP SDK Limitations
 
-- **Error:** Initial attempt to call MCP server directly from browser caused CORS + timeout issues.
-- **Root Cause:** Browser `fetch` has CORS constraints, and MCP Streamable HTTP needs server-side handling for long-running tools.
-- **Fix:** Created a Next.js API route (`/api/run-fix`) that acts as the MCP client server-side, then returns JSON to the browser.
-- **Learning:** Browser should never be an MCP client directly. Always use a backend proxy. This also enables secret handling and rate limiting.
+- **Task Attempted:** I tried to call the MCP server directly from the browser application.
+- **Steps Taken:** I used browser `fetch`, observed CORS and timeout failures, and moved MCP client execution into a Next.js `/api/run-fix` server-side route.
+- **Expected:** The browser should have been able to invoke the MCP server directly and receive the result.
+- **Actual:** Browser CORS constraints and long-running Streamable HTTP behavior made the direct client unreliable.
+- **Severity:** Major
+- **Workaround:** I created a backend proxy that acts as the MCP client, keeps server-side configuration private, and returns JSON to the browser.
+- **Actionable Suggestion:** Publish an official browser-integration pattern that explains why MCP clients belong behind a server-side proxy and includes CORS, timeout, authentication, and rate-limit guidance.
 
 ---
 
@@ -225,106 +296,149 @@
 
 ### Friction 22: Web Speech API Browser Compatibility
 
-- **Error:** Web Speech API (`webkitSpeechRecognition`) is not available in all browsers.
-- **Root Cause:** Chrome/Edge only. Firefox and Safari partial or missing.
-- **Fix:** Added fallback text input in `VoiceCommand` component.
-- **Learning:** Production voice interfaces MUST have non-voice fallbacks.
+- **Task Attempted:** I tried to provide voice commands across common browsers.
+- **Steps Taken:** I used `webkitSpeechRecognition`, tested browser availability, and added a text-input fallback in the `VoiceCommand` component.
+- **Expected:** Voice input should have worked consistently across supported browsers.
+- **Actual:** Web Speech API recognition was unavailable or incomplete in Firefox and Safari and is primarily supported by Chrome and Edge.
+- **Severity:** Major
+- **Workaround:** I provided a non-voice text input path when speech recognition is unavailable.
+- **Actionable Suggestion:** Document browser support and feature detection requirements for Web Speech API examples, and include an accessible text fallback in the reference implementation.
 
 ### Friction 23: Speech Synthesis Stuttering from Rapid State Transitions
 
-- **Error:** Each state spoke, but was cut off mid-sentence by the next state's speech.
-- **Root Cause:** Replay loop fired every 600ms, but speech takes ~2s per sentence. Overlap.
-- **Fix:** Converted `speak()` to return a Promise resolved on `'end'` event. Awaited inside the loop.
-- **Learning:** Audio is sequential by nature. UI animation synced to audio must await completion.
+- **Task Attempted:** I tried to narrate each state of the autonomous fix workflow in sequence.
+- **Steps Taken:** I observed the replay loop firing every 600ms, changed `speak()` to return a Promise resolved by `onend`, and awaited each utterance.
+- **Expected:** Each state message should have played completely before the next state was spoken.
+- **Actual:** Each state began, but the next state's speech cut it off because sentences took about two seconds.
+- **Severity:** Major
+- **Workaround:** I serialized speech playback by awaiting completion before advancing the replay loop.
+- **Actionable Suggestion:** Add a Web Speech sequencing example that queues utterances and explicitly warns against triggering speech on a timer shorter than the utterance duration.
 
 ### Friction 24: Chrome speechSynthesis onend Event Not Firing
 
-- **Error:** Voice got stuck on LOCALIZE. `speak()` Promise never resolved.
-- **Root Cause:** Chrome's `SpeechSynthesisUtterance` sometimes fails to fire `'onend'`, especially after multiple rapid utterances. Documented Chromium bug (crbug.com/335907).
-- **Fix:** Added timeout fallback: resolve after `max(3000, text.length * 100)` ms.
-- **Learning:** Production voice interfaces MUST have timeout fallbacks for browser APIs known to be flaky. Never trust `'onend'` events unconditionally.
+- **Task Attempted:** I tried to advance the narrated workflow after each Chrome speech-synthesis utterance.
+- **Steps Taken:** I reproduced the stuck state, investigated the unresolved Promise, and added a timeout fallback based on `max(3000, text.length * 100)` milliseconds.
+- **Expected:** Every utterance should have fired `onend` and allowed the workflow to continue.
+- **Actual:** Chrome sometimes failed to fire `SpeechSynthesisUtterance.onend`, leaving the workflow stuck on LOCALIZE.
+- **Severity:** Major
+- **Workaround:** I resolved the Promise after a bounded timeout when `onend` did not arrive.
+- **Actionable Suggestion:** Document the Chromium `speechSynthesis` completion-event failure mode and provide a reference helper with cancellation, timeout, and `onerror` handling.
 
 ### Friction 25: Duplicate `speak()` Calls Causing Speech Overlap
 
-- **Error:** "Starting autonomous fix session" mixed with "State, localize" — skipping REPRODUCE, PATCH, CRITIQUE.
-- **Root Cause:** Both a `useEffect` and the replay loop were calling `speak()` with different arguments.
-- **Fix:** Consolidated all speech into a single `useEffect` watching `sessionState`. Removed `speak()` from the loop.
-- **Learning:** Speech should be REACTIVE to state, not imperatively called inside loops.
+- **Task Attempted:** I tried to narrate the workflow from both state updates and the replay loop.
+- **Steps Taken:** I compared the spoken output, found two call sites, consolidated speech into one state-watching effect, and removed the loop's duplicate call.
+- **Expected:** One message should have played for each state transition.
+- **Actual:** “Starting autonomous fix session” overlapped with “State, localize,” and intermediate states were skipped audibly.
+- **Severity:** Major
+- **Workaround:** I made one component responsible for speech and removed the competing imperative call.
+- **Actionable Suggestion:** Add a development-time assertion or instrumentation helper that reports multiple speech producers for the same state transition.
 
 ### Friction 26: Overlapping Male + Female Voices (React StrictMode)
 
-- **Error:** Two voices spoke simultaneously — one male reciting the full sentence, one female in the background.
-- **Root Cause (1):** React StrictMode in dev mode runs `useEffect` twice → two `speak()` calls per state.
-- **Root Cause (2):** Chrome picks an unpredictable default voice if `utterance.voice` is not explicitly set.
-- **Fix:** Added `useRef` guards (`lastSpokenStateRef`, `isSpeakingRef`) + explicit voice caching via `pickVoice()`.
-- **Learning:** React StrictMode double-effects + browser voice-list inconsistencies compound into nasty bugs.
+- **Task Attempted:** I tried to play one stable voice for each workflow state in React development mode.
+- **Steps Taken:** I reproduced simultaneous voices, added `useRef` guards for state and speaking status, and explicitly cached the voice selected by `pickVoice()`.
+- **Expected:** React StrictMode should not have caused duplicate audible effects, and the selected voice should have remained consistent.
+- **Actual:** Two voices spoke simultaneously because StrictMode ran the effect twice and Chrome selected an unpredictable default voice.
+- **Severity:** Major
+- **Workaround:** I guarded duplicate effects and assigned an explicit cached voice to each utterance.
+- **Actionable Suggestion:** Add React StrictMode guidance for browser side effects and require voice selection plus effect cleanup in speech-synthesis examples.
 
 ### Friction 27: Voice Too High-Pitched / Rushed for a Developer Tool
 
-- **Issue:** Default voice was female and rushed (`rate 1.15`), sounding unserious for a dev tool demo.
-- **Fix:** Prefer deeper male English voices (David / Mark / Guy) via `pickVoice()`. Set `rate=1.0`, `pitch=0.8`.
-- **Learning:** Voice UX matters. Developer tools should sound confident and calm, matching an "expert companion" persona.
+- **Task Attempted:** I tried to make the voice interface sound appropriate for an expert developer-tool persona.
+- **Steps Taken:** I evaluated the default voice, selected deeper English voices such as David, Mark, or Guy when available, and changed the rate to `1.0` and pitch to `0.8`.
+- **Expected:** The narration should have sounded calm, clear, and professional.
+- **Actual:** The default voice was female and rushed at `rate 1.15`, which sounded unsuitable for the demo.
+- **Severity:** Minor
+- **Workaround:** I added voice preference selection and tuned the rate and pitch.
+- **Actionable Suggestion:** Provide voice UX guidance with configurable rate, pitch, language, and fallback selection rather than relying on the browser's unspecified default voice.
 
 ### Friction 28: Stray `speak()` Call Reading Log Lines Aloud
 
-- **Error:** Background voice reading "State: LOCALIZE", "State: VERIFY" over the main speech.
-- **Root Cause:** A leftover `speak()` call from an earlier refactor was passing the log string to `speechSynthesis`.
-- **Fix:** Audited entire `page.tsx` with grep. Confirmed only ONE `speak()` call remains (in the guarded `useEffect`).
-- **Learning:** Refactors that move logic around often leave orphan calls. Always grep for the function name after a refactor.
+- **Task Attempted:** I tried to keep audit-log text visible without having it read aloud as narration.
+- **Steps Taken:** I heard background messages such as “State: LOCALIZE,” searched all `speak()` call sites with grep, and removed the leftover call.
+- **Expected:** Only the intended state narration should have reached `speechSynthesis`.
+- **Actual:** A stale refactor call passed log strings to the speech engine, producing overlapping background narration.
+- **Severity:** Major
+- **Workaround:** I audited the entire page and confirmed that only the guarded narration path remained.
+- **Actionable Suggestion:** Separate display-log formatting from speech-message generation in the type system and add a test that asserts audit-log updates do not invoke speech.
 
 ### Friction 29: React useEffect Guard Dropped State Messages (Silent Failures)
 
-- **Error:** Some state messages (LOCALIZE, VERIFY, VERIFIED) were silently skipped during playback.
-- **Root Cause:** The `isSpeakingRef.current` guard returned early if a new state arrived during playback. No queue = silent drop.
-- **Fix:** Moved speech INTO the replay loop with `await speak(msg)`. Removed `useEffect` and ref guards entirely.
-- **Learning:** For strictly ordered async side effects (voice, animation), imperative loops over `await` beat reactive effects. `useEffect` is fire-and-forget; sequential loops are deterministic.
+- **Task Attempted:** I tried to play every state message exactly once while the workflow advanced asynchronously.
+- **Steps Taken:** I observed missing LOCALIZE, VERIFY, and VERIFIED messages, traced early returns to the `isSpeakingRef` guard, and moved speech into an awaited replay loop.
+- **Expected:** Every state should have been queued and spoken in order.
+- **Actual:** A new state arriving while speech was active caused the effect to return early, silently dropping the message.
+- **Severity:** Major
+- **Workaround:** I used an imperative loop with `await speak(msg)` so messages were serialized instead of discarded.
+- **Actionable Suggestion:** Document that React effects are not queues and provide a tested async queue pattern for ordered side effects such as speech and animation.
 
 ---
 
 ## Cross-AI Observation
 
-- Consulted Gemini for the voice-bug diagnosis. It correctly identified the "stray `speak()` reading log lines" pattern (Friction 28), but its suggested fix to "remove the timeout fallback" would have reintroduced Friction 24 (Chrome `onend` bug). Kept the fallback and documented the reasoning.
-- **Learning:** Cross-AI suggestions must be validated against project-specific edge cases. Different AI assistants have different context and may not know your project's full history.
+- Consulted Gemini for the voice-bug diagnosis. It correctly identified the stray `speak()` reading log lines pattern in Friction 28, but its suggested fix to remove the timeout fallback would have reintroduced the Chrome `onend` failure in Friction 24. I kept the fallback and validated the recommendation against the project's prior behavior.
+- **Learning:** Cross-AI suggestions must be validated against project-specific edge cases. Different AI assistants may not have the complete implementation history or the constraints established by earlier debugging.
 
 ---
 
 ## Day 11 Result
 
 - **Voice interface:** Fully functional, deterministic, all 7 states spoken in sequence.
-- **Demo flow:** User says "Fix the addNumbers bug" → agent narrates INTAKE → REPRODUCE → LOCALIZE → PATCH → VERIFY → CRITIQUE → VERIFIED → fix complete.
+- **Demo flow:** User says “Fix the addNumbers bug” → agent narrates INTAKE → REPRODUCE → LOCALIZE → PATCH → VERIFY → CRITIQUE → VERIFIED → fix complete.
 - **Zero overlaps, zero drops, zero stuttering.**
 
----
 ---
 
 ## Day 12 — October 7, 2026
 
 ### Friction 30: AWS UPI AutoPay and ₹15,000 Mandate Confusion
 
-- **Error:** During AWS signup, the UPI AutoPay screen showed a mandate limit of ₹15,000, causing panic about a massive charge.
-- **Root Cause:** Misunderstanding the difference between an AutoPay *limit* and an actual charge. Also, the ₹2 refundable verification fee wasn't clearly explained upfront.
-- **Fix:** Proceeded with UPI AutoPay, aware that ₹2 is only a temporary hold for identity verification. Redemeed $150 Hackathon credits + $100 Free Tier credits (total $250), ensuring all usage is covered.
-- **Learning:** AWS India uses UPI AutoPay limits as a safety mechanism, not an immediate charge. Credits must be redeemed immediately after signup to offset any potential costs. Also set up a $1 budget alert to catch surprise bills.
+- **Task Attempted:** I tried to complete AWS signup using UPI AutoPay for the hackathon account.
+- **Steps Taken:** I reviewed the UPI authorization screen, saw the ₹15,000 mandate limit, investigated the verification charge, redeemed the available hackathon and Free Tier credits, and configured a $1 budget alert.
+- **Expected:** The signup flow should have clearly distinguished an authorization limit from an immediate charge and explained the refundable verification amount.
+- **Actual:** The screen showed a ₹15,000 limit without enough upfront context, causing concern about a potential large charge; the ₹2 refundable verification fee was also not clearly explained.
+- **Severity:** Major
+- **Workaround:** I proceeded after confirming that the mandate limit was not an immediate charge, understood the ₹2 verification hold, redeemed $150 in hackathon credits plus $100 in Free Tier credits, and added a budget alert.
+- **Actionable Suggestion:** Add a plain-language explanation beside the UPI AutoPay field stating that ₹15,000 is a maximum authorization limit, not an immediate debit, and disclose the ₹2 refundable verification hold before confirmation.
 
 ### Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed
 
-- **Error:** Uncertainty about whether a physical Alexa+ device or hardware was required for the Alexa+ track.
-- **Root Cause:** The track description mentions building an MCP server or Agent Skill, but doesn't explicitly state hardware requirements in the main rules.
-- **Fix:** Found the official Hackathon FAQ which clearly states: "Alexa+: build a self-hosted MCP server or Agent Skill, or a simulated experience - no physical device needed."
-- **Learning:** Always check the FAQ and official community forums for hardware/software track constraints. Our dashboard's Web Speech API voice interface perfectly satisfies the "simulated experience" criteria, making the project fully compliant with track rules.
+- **Task Attempted:** I tried to determine whether the Alexa+ track required physical Alexa+ hardware.
+- **Steps Taken:** I reviewed the track description, searched the official hackathon FAQ, and compared its requirements with the project's simulated voice experience.
+- **Expected:** The main track rules should have stated the hardware requirement, or lack of one, unambiguously.
+- **Actual:** The track description referenced an MCP server or Agent Skill without clearly stating that no physical device was needed.
+- **Severity:** Documentation
+- **Workaround:** I used the official FAQ, which states that a self-hosted MCP server, Agent Skill, or simulated experience is acceptable without a physical device.
+- **Actionable Suggestion:** Repeat the “no physical device required” statement directly in the Alexa+ track overview and add a requirements matrix covering hardware, software, MCP, and simulated-experience options.
 
----
-### Friction 32: ENOENT on Vercel deployment due to Root Directory scope
-- **Error:** `/var/task/sandbox/src/buggy_code.ts` not found on Vercel deployment.
-- **Root Cause:** Vercel deploys only the `dashboard` folder (Root Directory setting). The `sandbox/` folder lives outside this scope, so file operations in the API route fail with ENOENT.
-- **Fix:** Added graceful fallback in the API route — file operations are wrapped in try-catch, and the MCP call still runs on Railway (which has the sandbox). Diff viewer shows a placeholder.
-- **Learning:** In monorepo deployments, file paths relative to the deployed subdirectory must be handled carefully. For demos requiring filesystem access, use the local environment or deploy the entire repo with a monorepo config (`vercel.json`).
+### Friction 32: ENOENT on Vercel Deployment Due to Root Directory Scope
 
----
+- **Task Attempted:** I tried to run the dashboard's fix API route after deploying only the `dashboard` directory to Vercel.
+- **Steps Taken:** The route attempted to reset and read `sandbox/src/buggy_code.ts`, I reproduced the missing-file error, and I wrapped the local file operations in fallbacks while leaving the MCP call on Railway.
+- **Expected:** The API route should have completed the remote fix even when the sandbox was outside the Vercel deployment root.
+- **Actual:** Vercel reported `ENOENT` because `/var/task/sandbox/src/buggy_code.ts` was not present in the deployed `dashboard` scope.
+- **Severity:** Major
+- **Workaround:** I caught file read/write failures, displayed a placeholder diff, and continued the MCP request against the Railway server that owns the sandbox.
+- **Actionable Suggestion:** Add a monorepo deployment guide that explains Vercel Root Directory file scope and recommends either deploying the required workspace or explicitly separating local filesystem operations from remote MCP execution.
+
 ## Summary Statistics
 
-- **Total frictions documented:** 29
+- **Total frictions documented:** 32
 - **Days of development:** 11
-- **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode
-- **Key categories:** Environment setup, MCP protocol compliance, State machine event sourcing, Browser API quirks, React async sequencing, Cross-AI validation
-- **Lesson:** The vast majority of friction came from **environment setup** and **browser API inconsistencies**, not from the core agent logic. MCP protocol is well-designed; the surrounding tooling ecosystem still has rough edges.
+- **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode, Vercel
+- **Key categories:** Environment setup, MCP protocol compliance, state-machine event sourcing, browser API quirks, React async sequencing, cloud deployment, cross-AI validation
+- **Lesson:** The majority of friction came from environment setup, protocol integration, deployment boundaries, and browser API inconsistencies rather than the core agent logic. MCP is a useful integration protocol, but its surrounding tooling requires explicit schemas, observability, timeout handling, and deployment guidance.
+
+---
+
+## Product Feedback Summary
+
+- **Documentation gaps:** MCP response envelopes, progress notifications, browser integration, and FastMCP CORS configuration required inference from errors or source behavior; official examples should cover these common integration paths end to end.
+- **Setup friction:** Windows developers can be blocked before writing application code by missing Node.js, npm execution policy restrictions, missing Git, PATH refresh requirements, and unset Git identity.
+- **Cross-service integration patterns:** A browser UI, Next.js API route, MCP server, Railway runtime, and Vercel deployment each have different networking and filesystem boundaries; reference architectures should make those boundaries explicit.
+- **MCP protocol adoption:** The protocol is capable of structured tools and streaming progress, but strict `CallToolResult` envelopes and client timeout behavior are easy to discover only after runtime failures.
+- **Observability:** Long-running tools benefit from standardized request URLs, response status logging, progress events, terminal-state reporting, and bounded timeouts so failures can be diagnosed without reproducing the entire workflow locally.
+- **Developer experience:** MCP Inspector is valuable for protocol debugging, but pagination and timeout controls should expose compatibility state instead of producing empty tool lists or opaque timeout errors.
+- **Cloud deployment readiness:** Examples that perform filesystem work should distinguish local repository operations from remote service operations and document how Root Directory settings, missing files, environment variables, and server wake-up delays affect production behavior.
