@@ -314,6 +314,13 @@
 - **Learning:** Always check the FAQ and official community forums for hardware/software track constraints. Our dashboard's Web Speech API voice interface perfectly satisfies the "simulated experience" criteria, making the project fully compliant with track rules.
 
 ---
+### Friction 32: ENOENT on Vercel deployment due to Root Directory scope
+- **Error:** `/var/task/sandbox/src/buggy_code.ts` not found on Vercel deployment.
+- **Root Cause:** Vercel deploys only the `dashboard` folder (Root Directory setting). The `sandbox/` folder lives outside this scope, so file operations in the API route fail with ENOENT.
+- **Fix:** Added graceful fallback in the API route — file operations are wrapped in try-catch, and the MCP call still runs on Railway (which has the sandbox). Diff viewer shows a placeholder.
+- **Learning:** In monorepo deployments, file paths relative to the deployed subdirectory must be handled carefully. For demos requiring filesystem access, use the local environment or deploy the entire repo with a monorepo config (`vercel.json`).
+
+---
 ## Summary Statistics
 
 - **Total frictions documented:** 29
