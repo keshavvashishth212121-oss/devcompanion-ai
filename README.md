@@ -1,5 +1,7 @@
 # DevCompanion AI — Autonomous Bug-to-Verified-Fix Loop
 
+> **Don't trust the agent. Audit it.** Every autonomous fix, replayable to the millisecond.
+
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25-6f42c1)](https://modelcontextprotocol.io/)
 [![Transport](https://img.shields.io/badge/Transport-Streamable%20HTTP-0ea5e9)](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
 [![State machine](https://img.shields.io/badge/State%20Machine-XState-f59e0b)](https://xstate.js.org/)
@@ -39,6 +41,9 @@ Agent Plane (XState FSM) ───────► Presentation Plane (progress u
 Execution Plane (sandbox tools) ─► Observability Plane (audit log)
 ```
 ## Screenshots
+
+### Hero Landing Page — The First Impression
+![Hero landing page](docs/hero.png)
 
 ### Live Dashboard — Autonomous Fix in Progress
 ![Dashboard with live state machine](docs/dashboard.png)
@@ -109,18 +114,6 @@ The server uses **Streamable HTTP** for MCP communication.
 | `run_tests` | Runs a supplied test or verification command in an optional working directory. |
 | `apply_patch` | Replaces matching source content with the proposed fix. |
 | `run_autonomous_fix` | Runs the complete bug-to-verified-fix loop and streams live state progress. |
-
-## Key Features
-
-- **Deterministic 9-state XState FSM** — The LLM proposes, the state machine disposes.
-- **Self-hosted MCP server** — Streamable HTTP transport, spec 2025-11-25.
-- **Real disk-level code modification** — Agent reads, patches, verifies files on disk.
-- **Event-sourced audit log** — Every transition recorded with millisecond timestamps.
-- **Time-Travel Replay Scrubber** — Drag through any past run, second-by-second.
-- **Live MCP Protocol Stream** — Watch raw JSON-RPC messages flow in real time.
-- **Alexa+ Voice Interface** — Web Speech API for voice commands and narration.
-- **Success Pulse Animation** — Cinematic visual confirmation on verified fixes.
-- **Cloud deployment** — Vercel (dashboard) + Railway (MCP server) with graceful fallback.
 
 ## How It Works
 
