@@ -60,6 +60,9 @@ Execution Plane (sandbox tools) ─► Observability Plane (audit log)
 ### Success Pulse — Autonomous Fix Verified
 ![Success pulse animation](docs/success-pulse.png)
 
+### Run Receipt — Cryptographic Proof of Fix
+![Run receipt with SHA256](docs/receipt.png)
+
 ---
 
 ## The 9-State Machine
@@ -114,6 +117,22 @@ The server uses **Streamable HTTP** for MCP communication.
 | `run_tests` | Runs a supplied test or verification command in an optional working directory. |
 | `apply_patch` | Replaces matching source content with the proposed fix. |
 | `run_autonomous_fix` | Runs the complete bug-to-verified-fix loop and streams live state progress. |
+
+## Shareable Run Receipts — "Don't trust. Audit."
+
+Every autonomous fix produces a shareable, cryptographically verifiable receipt. After a run, click "Share this run" and get a URL like:
+
+`devcompanion-ai.vercel.app/run/[base64-encoded-receipt]`
+
+Anyone can open the URL and:
+- Replay the run second-by-second via the scrubber
+- See the exact diff applied to disk
+- Verify every state transition with millisecond-precise timestamps
+- View the SHA256 hash of the run data
+
+**This is what "Don't trust the agent. Audit it." means in practice.**
+
+![Run Receipt](docs/receipt.png)
 
 ## How It Works
 
