@@ -10,14 +10,14 @@
 - [Friction 2: PowerShell Blocks npm Scripts](#friction-2-powershell-blocks-npm-scripts)
 - [Friction 3: `cd Desktop` Failed from system32](#friction-3-cd-desktop-failed-from-system32)
 - [Friction 4: Copilot Generated Placeholder Code](#friction-4-copilot-generated-placeholder-code)
-- [Friction 5: `search_symbols` Returned Raw Array](#friction-5-search_symbols-returned-raw-array)
+- [Friction 5: `search_symbols` Returned Raw Array](#friction-5-search-symbols-returned-raw-array)
 - [Friction 6: MCP CallToolResult Format Required](#friction-6-mcp-calltoolresult-format-required)
-- [Friction 7: Ghost Patch — File Modified Despite Validation Error](#friction-7-ghost-patch--file-modified-despite-validation-error)
-- [Friction 8: Tool Expansion — Day 3 MCP Protocol Mastery](#friction-8-tool-expansion--day-3-mcp-protocol-mastery)
+- [Friction 7: Ghost Patch — File Modified Despite Validation Error](#friction-7-ghost-patch-file-modified-despite-validation-error)
+- [Friction 8: Tool Expansion — Day 3 MCP Protocol Mastery](#friction-8-tool-expansion-day-3-mcp-protocol-mastery)
 - [Friction 9: End-to-End MCP Tool Testing](#friction-9-end-to-end-mcp-tool-testing)
 - [Friction 10: First Disk-Level Code Modification](#friction-10-first-disk-level-code-modification)
-- [Friction 11: Ghost State Handling — DIAGNOSE Path Validation](#friction-11-ghost-state-handling--diagnose-path-validation)
-- [Friction 12: Progress Notifications — Day 6 Real-Time Streaming](#friction-12-progress-notifications--day-6-real-time-streaming)
+- [Friction 11: Ghost State Handling — DIAGNOSE Path Validation](#friction-11-ghost-state-handling-diagnose-path-validation)
+- [Friction 12: Progress Notifications — Day 6 Real-Time Streaming](#friction-12-progress-notifications-day-6-real-time-streaming)
 - [Friction 13: Real-Time Streaming Issues](#friction-13-real-time-streaming-issues)
 - [Friction 14: `auditLog` Not Populated in XState Context](#friction-14-auditlog-not-populated-in-xstate-context)
 - [Friction 15: Infinite Wait on DIAGNOSE State](#friction-15-infinite-wait-on-diagnose-state)
@@ -25,20 +25,22 @@
 - [Friction 17: Git Not Installed by Default on Windows](#friction-17-git-not-installed-by-default-on-windows)
 - [Friction 18: Git Identity Not Set on Fresh Install](#friction-18-git-identity-not-set-on-fresh-install)
 - [Friction 19: FastMCP CORS Configuration Not Documented Clearly](#friction-19-fastmcp-cors-configuration-not-documented-clearly)
-- [Friction 20: Next.js Auto-Open Browser Failed + Turbopack Lockfile Warning](#friction-20-nextjs-auto-open-browser-failed--turbopack-lockfile-warning)
+- [Friction 20: Next.js Auto-Open Browser Failed + Turbopack Lockfile Warning](#friction-20-nextjs-auto-open-browser-failed-turbopack-lockfile-warning)
 - [Friction 21: Browser MCP SDK Limitations](#friction-21-browser-mcp-sdk-limitations)
 - [Friction 22: Web Speech API Browser Compatibility](#friction-22-web-speech-api-browser-compatibility)
 - [Friction 23: Speech Synthesis Stuttering from Rapid State Transitions](#friction-23-speech-synthesis-stuttering-from-rapid-state-transitions)
 - [Friction 24: Chrome speechSynthesis onend Event Not Firing](#friction-24-chrome-speechsynthesis-onend-event-not-firing)
 - [Friction 25: Duplicate `speak()` Calls Causing Speech Overlap](#friction-25-duplicate-speak-calls-causing-speech-overlap)
-- [Friction 26: Overlapping Male + Female Voices (React StrictMode)](#friction-26-overlapping-male--female-voices-react-strictmode)
-- [Friction 27: Voice Too High-Pitched / Rushed for a Developer Tool](#friction-27-voice-too-high-pitched--rushed-for-a-developer-tool)
+- [Friction 26: Overlapping Male + Female Voices (React StrictMode)](#friction-26-overlapping-male-female-voices-react-strictmode)
+- [Friction 27: Voice Too High-Pitched / Rushed for a Developer Tool](#friction-27-voice-too-high-pitched-rushed-for-a-developer-tool)
 - [Friction 28: Stray `speak()` Call Reading Log Lines Aloud](#friction-28-stray-speak-call-reading-log-lines-aloud)
 - [Friction 29: React useEffect Guard Dropped State Messages (Silent Failures)](#friction-29-react-useeffect-guard-dropped-state-messages-silent-failures)
 - [Cross-AI Observation](#cross-ai-observation)
 - [Friction 30: AWS UPI AutoPay and ₹15,000 Mandate Confusion](#friction-30-aws-upi-autopay-and-15000-mandate-confusion)
-- [Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed](#friction-31-hackathon-faq-clarification--no-physical-alexa-device-needed)
+- [Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed](#friction-31-hackathon-faq-clarification-no-physical-alexa-device-needed)
 - [Friction 32: ENOENT on Vercel Deployment Due to Root Directory Scope](#friction-32-enoent-on-vercel-deployment-due-to-root-directory-scope)
+- [Friction 33: MCP Protocol Stream Undefined Lines Crash](#friction-33-mcp-protocol-stream-undefined-lines-crash)
+- [Product Feedback Summary](#product-feedback-summary)
 
 ---
 
@@ -422,6 +424,16 @@
 - **Severity:** Major
 - **Workaround:** I caught file read/write failures, displayed a placeholder diff, and continued the MCP request against the Railway server that owns the sandbox.
 - **Actionable Suggestion:** Add a monorepo deployment guide that explains Vercel Root Directory file scope and recommends either deploying the required workspace or explicitly separating local filesystem operations from remote MCP execution.
+
+### Friction 33: MCP Protocol Stream Undefined Lines Crash
+
+- **Task Attempted:** I tried to display simulated MCP JSON-RPC messages in the dashboard's live protocol stream.
+- **Steps Taken:** I rendered each visible protocol message by mapping over its `lines` array, reproduced the dashboard runtime failure, and added defensive defaults when messages enter state.
+- **Expected:** Every stream message should have rendered safely, including messages with incomplete or malformed data.
+- **Actual:** The dashboard crashed with `Cannot read properties of undefined (reading 'lines')` when a visible message did not contain a `lines` property.
+- **Severity:** Major
+- **Workaround:** I normalized pushed messages with `lines: message?.lines || []` and guarded rendering with `(message.lines || []).map(...)`.
+- **Actionable Suggestion:** Add runtime schema validation or normalization at MCP stream boundaries, provide a typed message factory that always supplies `lines`, and include a malformed-message test case in the protocol-stream component tests.
 
 ## Summary Statistics
 

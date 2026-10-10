@@ -1,3 +1,6 @@
+import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+
 type State =
   | "INTAKE"
   | "REPRODUCE"
@@ -62,6 +65,13 @@ function edgePath(from: State, to: State): string {
 }
 
 function StateMachine({ currentState, stateHistory }: StateMachineProps) {
+  const previousStateRef = useRef<State>(currentState);
+  const previousState = previousStateRef.current;
+
+  useEffect(() => {
+    previousStateRef.current = currentState;
+  }, [currentState]);
+
   return (
     <section className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4 text-slate-100 shadow-lg">
       <h2 className="mb-3 text-lg font-semibold tracking-tight">
@@ -162,6 +172,19 @@ function StateMachine({ currentState, stateHistory }: StateMachineProps) {
             </g>
           );
         })}
+
+        <motion.circle
+          cx={nodeByState[previousState].x}
+          cy={nodeByState[previousState].y}
+          r="6"
+          fill="#34d399"
+          filter="drop-shadow(0 0 6px #34d399)"
+          animate={{
+            cx: nodeByState[currentState].x,
+            cy: nodeByState[currentState].y,
+          }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+        />
       </svg>
     </section>
   );

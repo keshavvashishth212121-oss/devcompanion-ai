@@ -1,10 +1,15 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useState } from "react";
 import StateMachine from "./components/StateMachine";
 import AuditTimeline from "./components/AuditTimeline";
 import DiffViewer from "./components/DiffViewer";
 import MetricsPanel from "./components/MetricsPanel";
+import MCPProtocolStream from "./components/MCPProtocolStream";
+import ReplayScrubber from "./components/ReplayScrubber";
+import SuccessPulse from "./components/SuccessPulse";
+import { playSuccessChime } from "./utils/sound";
 import VoiceCommand, { speak } from "./components/VoiceCommand";
 
 type State =
@@ -31,6 +36,12 @@ export default function Home() {
     Array<{ timestamp: string; to: string; event: string; cost: number }>
   >([]);
   const [durationMs, setDurationMs] = useState(0);
+  const [scrubIndex, setScrubIndex] = useState(0);
+
+  function handleScrub(index: number) {
+    setScrubIndex(index);
+    setSessionState(auditLog[index]?.to as State || "INTAKE");
+  }
 
   async function startRun(initialLog = "[API] Connecting to MCP server...") {
     if (isRunning) {
@@ -80,6 +91,7 @@ export default function Home() {
         ESCALATE: "Escalating to human review.",
       };
 
+      let successChimePlayed = false;
       for (let i = 0; i < stateHistory.length; i++) {
         const state = stateHistory[i];
         setSessionState(state as State);
@@ -89,6 +101,10 @@ export default function Home() {
           `[00:00:0${i}.00] State: ${state}`,
         ]);
         const msg = messages[state];
+        if (state === "VERIFIED" && !successChimePlayed) {
+          playSuccessChime();
+          successChimePlayed = true;
+        }
         if (msg) {
           await speak(msg);
         }
@@ -136,15 +152,20 @@ export default function Home() {
     ]);
   }
 
+  const visibleStateHistory = stateHistory.slice(0, scrubIndex + 1);
+  const visibleLogs = logs.slice(0, scrubIndex + 1);
+
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
+    <>
+      <SuccessPulse trigger={result !== null} />
+      <main className="relative min-h-screen px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col">
         <header className="mb-8 flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-emerald-400">
+            <p className="font-display mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-400">
               Autonomous developer companion
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               DevCompanion AI{" "}
               <span className="text-slate-500">—</span>{" "}
               <span className="text-slate-300">
@@ -156,28 +177,35 @@ export default function Home() {
             type="button"
             onClick={() => void startRun()}
             disabled={isRunning}
-            className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+            className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           >
             {isRunning ? "Fix in progress..." : "Run Autonomous Fix"}
           </button>
         </header>
 
         <div className="grid flex-1 gap-6 lg:grid-cols-3">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-2xl shadow-black/20 lg:col-span-2">
-            <div className="mb-6 rounded-xl border border-slate-800 bg-slate-950/60 p-5">
-              <h2 className="mb-4 text-center text-sm font-semibold text-white">
-                Alexa+ Voice Interface
-              </h2>
-              <VoiceCommand
-                onCommand={handleVoiceCommand}
-                disabled={isRunning}
-                currentState={sessionState}
-              />
-            </div>
+          <section className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 24 }}
+              whileHover={{ scale: 1.005 }}
+            >
+              <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-md shadow-2xl">
+                <h2 className="font-display mb-4 text-center text-sm font-semibold text-white">
+                  Alexa+ Voice Interface
+                </h2>
+                <VoiceCommand
+                  onCommand={handleVoiceCommand}
+                  disabled={isRunning}
+                  currentState={sessionState}
+                />
+              </div>
+            </motion.div>
             <div className="mb-3 flex items-center justify-between px-1">
               <div>
-                <h2 className="font-semibold text-white">Execution flow</h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <h2 className="font-display font-semibold text-white">Execution flow</h2>
+                <p className="font-body mt-1 text-sm text-slate-400">
                   Live state progression from intake to verified fix
                 </p>
               </div>
@@ -185,17 +213,30 @@ export default function Home() {
                 MCP session
               </span>
             </div>
-            <StateMachine
-              currentState={sessionState}
-              stateHistory={stateHistory}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 24 }}
+              whileHover={{ scale: 1.005 }}
+            >
+              <StateMachine
+                currentState={sessionState}
+                stateHistory={visibleStateHistory}
+              />
+            </motion.div>
           </section>
 
-          <aside className="flex min-h-[480px] flex-col rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/20">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 24 }}
+            whileHover={{ scale: 1.005 }}
+          >
+            <aside className="flex min-h-[480px] flex-col rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-md shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-semibold text-white">Run activity</h2>
-                <p className="mt-1 text-sm text-slate-400">Live execution log</p>
+                <h2 className="font-display font-semibold text-white">Run activity</h2>
+                <p className="font-body mt-1 text-sm text-slate-400">Live execution log</p>
               </div>
               <span
                 className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
@@ -211,12 +252,12 @@ export default function Home() {
             </div>
 
             <div
-              className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs leading-6"
+              className="font-mono min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs leading-6"
               aria-live="polite"
               aria-label="Execution logs"
             >
-              {logs.length > 0 ? (
-                logs.map((log, index) => (
+              {visibleLogs.length > 0 ? (
+                visibleLogs.map((log, index) => (
                   <p
                     key={`${log}-${index}`}
                     className={
@@ -229,39 +270,76 @@ export default function Home() {
                   </p>
                 ))
               ) : (
-                <p className="text-slate-600">
+                <p className="font-mono text-slate-600">
                   Ready to start an autonomous fix run...
                 </p>
               )}
             </div>
 
             {result && (
-              <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+              <div className="font-body mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
                 <span className="font-semibold">Success:</span>{" "}
                 Autonomous fix completed.
               </div>
             )}
 
-          </aside>
+            <MCPProtocolStream isRunning={isRunning} />
+            </aside>
+          </motion.div>
         </div>
 
         {result && (
+          <div className="mt-6">
+            <ReplayScrubber
+              auditLog={auditLog}
+              stateHistory={stateHistory}
+              onScrub={handleScrub}
+              currentIndex={scrubIndex}
+            />
+            <p className="mt-3 text-center text-xs text-slate-500">
+              Replay this run — every state, every tool call, millisecond-precise.
+            </p>
+          </div>
+        )}
+
+        {result && (
           <>
-            <div className="mt-6">
+            <motion.div
+              className="font-body mt-6 rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 24 }}
+              whileHover={{ scale: 1.005 }}
+            >
               <MetricsPanel
                 stateHistory={stateHistory}
                 durationMs={durationMs}
               />
-            </div>
+            </motion.div>
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">
+              <motion.div
+                className="font-mono text-xs rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl lg:col-span-2"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 24 }}
+                whileHover={{ scale: 1.005 }}
+              >
                 {diff && <DiffViewer before={diff.before} after={diff.after} />}
-              </div>
-              <AuditTimeline auditLog={auditLog} />
+              </motion.div>
+              <motion.div
+                className="font-mono rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 24 }}
+                whileHover={{ scale: 1.005 }}
+              >
+                <AuditTimeline auditLog={auditLog} />
+              </motion.div>
             </div>
           </>
         )}
       </div>
-    </main>
+      </main>
+    </>
   );
 }
