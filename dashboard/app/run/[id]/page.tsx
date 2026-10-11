@@ -47,17 +47,19 @@ const states = new Set<State>([
 
 function decodeReceipt(id: string): RunReceipt {
   let payload: unknown;
-  const decompressed = LZString.decompressFromEncodedURIComponent(id);
-
-  if (decompressed) {
-    payload = JSON.parse(decompressed);
-  } else {
-    const normalized = id.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    const binary = atob(padded);
-    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-    const json = new TextDecoder().decode(bytes);
-    payload = JSON.parse(json);
+  try {
+    // Primary: LZ-string decompression (current encoder format)
+    const decompressed = LZString.decompressFromEncodedURIComponent(id);
+    if (decompressed) {
+      payload = JSON.parse(decompressed);
+    } else {
+      // Fallback: old base64 format (for backward compatibility with older shared links)
+      const decoded = decodeURIComponent(escape(atob(id)));
+      payload = JSON.parse(decoded);
+    }
+  } catch (err) {
+    console.error("Receipt decode failed:", err);
+    throw err;
   }
 
   const parsed = payload as RunReceipt;
