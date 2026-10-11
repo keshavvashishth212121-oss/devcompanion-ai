@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import LZString from "lz-string";
 import { useState } from "react";
 import StateMachine from "./components/StateMachine";
 import AuditTimeline from "./components/AuditTimeline";
@@ -9,8 +10,16 @@ import MetricsPanel from "./components/MetricsPanel";
 import MCPProtocolStream from "./components/MCPProtocolStream";
 import ReplayScrubber from "./components/ReplayScrubber";
 import SuccessPulse from "./components/SuccessPulse";
+import Hero from "./components/Hero";
 import { playSuccessChime } from "./utils/sound";
 import VoiceCommand, { speak } from "./components/VoiceCommand";
+
+function forSpeech(text: string): string {
+  return text
+    .replace(/addNumbers/g, "add numbers")
+    .replace(/buggy_code\.ts/g, "buggy code")
+    .replace(/sandbox/g, "sandbox");
+}
 
 type State =
   | "INTAKE"
@@ -37,10 +46,37 @@ export default function Home() {
   >([]);
   const [durationMs, setDurationMs] = useState(0);
   const [scrubIndex, setScrubIndex] = useState(0);
+  const [shareToast, setShareToast] = useState<string | null>(null);
 
   function handleScrub(index: number) {
     setScrubIndex(index);
     setSessionState(auditLog[index]?.to as State || "INTAKE");
+  }
+
+  async function shareRun() {
+    if (!diff) {
+      return;
+    }
+
+    const payload = {
+      stateHistory,
+      auditLog,
+      before: diff.before,
+      after: diff.after,
+      timestamp: Date.now(),
+    };
+    const encoded = LZString.compressToEncodedURIComponent(
+      JSON.stringify(payload),
+    );
+    const url = `${window.location.origin}/run/${encoded}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareToast("Shareable proof copied to clipboard");
+      window.setTimeout(() => setShareToast(null), 3000);
+    } catch (error) {
+      setShareToast(`Unable to copy shareable proof: ${String(error)}`);
+    }
   }
 
   async function startRun(initialLog = "[API] Connecting to MCP server...") {
@@ -106,7 +142,7 @@ export default function Home() {
           successChimePlayed = true;
         }
         if (msg) {
-          await speak(msg);
+          await speak(forSpeech(msg));
         }
         await new Promise((resolve) => window.setTimeout(resolve, 300));
       }
@@ -140,16 +176,28 @@ export default function Home() {
 
   async function handleVoiceCommand(transcript: string) {
     const voiceLog = `[VOICE] User said: ${transcript}`;
-    if (/fix|bug/i.test(transcript)) {
+    const normalized = transcript.toLowerCase().replace(/[^\w\s]/g, " ");
+    const hasFixIntent = /\b(fix|patch|repair)\b/.test(normalized);
+    const hasTarget = /add\s*numbers?/i.test(normalized);
+
+    if (hasFixIntent && hasTarget) {
       await startRun(voiceLog);
       return;
     }
 
+    if (hasFixIntent) {
+      setLogs((currentLogs) => [
+        ...currentLogs,
+        `[VOICE] Heard "${transcript}" — target unclear.`,
+      ]);
+      await speak(forSpeech(
+        "I can fix the addNumbers bug. Try saying: Fix the addNumbers bug",
+      ));
+      return;
+    }
+
     setLogs((currentLogs) => [...currentLogs, voiceLog]);
-    setLogs((currentLogs) => [
-      ...currentLogs,
-      "Try saying: Fix the addNumbers bug",
-    ]);
+    await speak(forSpeech("I didn't catch that. Try saying: Fix the addNumbers bug"));
   }
 
   const visibleStateHistory = stateHistory.slice(0, scrubIndex + 1);
@@ -158,7 +206,8 @@ export default function Home() {
   return (
     <>
       <SuccessPulse trigger={result !== null} />
-      <main className="relative min-h-screen px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
+      <Hero />
+      <main id="dashboard" className="relative min-h-screen px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col">
         <header className="mb-8 flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -277,9 +326,18 @@ export default function Home() {
             </div>
 
             {result && (
-              <div className="font-body mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
-                <span className="font-semibold">Success:</span>{" "}
-                Autonomous fix completed.
+              <div className="font-body mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+                <span>
+                  <span className="font-semibold">Success:</span>{" "}
+                  Autonomous fix completed.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void shareRun()}
+                  className="rounded-md border border-emerald-400/40 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-400/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                >
+                  Share this run
+                </button>
               </div>
             )}
 
@@ -340,6 +398,14 @@ export default function Home() {
         )}
       </div>
       </main>
+      {shareToast && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-emerald-400/40 bg-slate-900 px-4 py-3 text-sm text-emerald-300 shadow-2xl"
+        >
+          {shareToast}
+        </div>
+      )}
     </>
   );
 }

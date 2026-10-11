@@ -124,6 +124,8 @@ Every autonomous fix produces a shareable, cryptographically verifiable receipt.
 
 `devcompanion-ai.vercel.app/run/[base64-encoded-receipt]`
 
+After the agent verifies a fix, a **Share this run** button appears next to the success message. Click it to copy a compressed, shareable URL to the clipboard. The URL can be opened by anyone — no login, no setup — to replay the entire run, verify the SHA256 hash, and audit every state transition.
+
 Anyone can open the URL and:
 - Replay the run second-by-second via the scrubber
 - See the exact diff applied to disk

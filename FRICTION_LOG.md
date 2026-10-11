@@ -40,6 +40,9 @@
 - [Friction 31: Hackathon FAQ Clarification — No Physical Alexa+ Device Needed](#friction-31-hackathon-faq-clarification-no-physical-alexa-device-needed)
 - [Friction 32: ENOENT on Vercel Deployment Due to Root Directory Scope](#friction-32-enoent-on-vercel-deployment-due-to-root-directory-scope)
 - [Friction 33: MCP Protocol Stream Undefined Lines Crash](#friction-33-mcp-protocol-stream-undefined-lines-crash)
+- [Friction 34: TTS Engine Spells Out camelCase Identifiers](#friction-34-tts-engine-spells-out-camelcase-identifiers)
+- [Friction 35: Voice Command Trigger Too Loose](#friction-35-voice-command-trigger-too-loose)
+- [Friction 36: Shareable Receipt URL Too Long](#friction-36-shareable-receipt-url-too-long)
 - [Product Feedback Summary](#product-feedback-summary)
 
 ---
@@ -435,9 +438,43 @@
 - **Workaround:** I normalized pushed messages with `lines: message?.lines || []` and guarded rendering with `(message.lines || []).map(...)`.
 - **Actionable Suggestion:** Add runtime schema validation or normalization at MCP stream boundaries, provide a typed message factory that always supplies `lines`, and include a malformed-message test case in the protocol-stream component tests.
 
+---
+
+## Day 14 — October 11, 2026
+
+### Friction 34: TTS Engine Spells Out camelCase Identifiers
+
+- **Task Attempted:** Wanted the voice interface to announce the target identifier "addNumbers" naturally during a run.
+- **Steps Taken:** Wired speak() with the string "I can fix the addNumbers bug". Tested in Chrome.
+- **Expected:** TTS would pronounce "addNumbers" as "add numbers".
+- **Actual:** TTS pronounced it as "a-d-d-numbers" — spelling out each part of the camelCase identifier separately.
+- **Severity:** Minor
+- **Workaround:** Created a forSpeech() helper that maps code identifiers to speakable text ("addNumbers" → "add numbers") before passing to speak(). Log strings remain unchanged.
+- **Actionable Suggestion:** Web Speech API documentation should explain camelCase handling. A standard "speech-friendly identifier" helper would prevent every developer from rediscovering this edge case.
+
+### Friction 35: Voice Command Trigger Too Loose
+
+- **Task Attempted:** Wanted the Alexa+ voice interface to run the fix only when the user clearly asked to fix the addNumbers bug.
+- **Steps Taken:** Wired handleVoiceCommand() to run the fix when the transcript matched /fix|bug/i. Tested with phrases like "Fix fix", "Fix the bug", and "Hello world".
+- **Expected:** Only specific commands like "Fix the addNumbers bug" should trigger a run.
+- **Actual:** "Fix fix" and "Fix the bug" both ran the fix. Target identifier was not required. This could cause accidental runs from garbled speech-to-text output.
+- **Severity:** Major
+- **Workaround:** Rewrote the trigger to require BOTH a fix-intent keyword ("fix", "patch", "repair") AND a target match ("addnumbers", "add numbers", "add number"). If only one is present, respond with a clarifying voice message instead of running.
+- **Actionable Suggestion:** Voice interfaces should ship with a documented "intent + entity" pattern. Chrome's SpeechRecognition often mangles identifiers ("bug" → "but"), so name-entity matching should be fuzzy-tolerant while intent matching should be strict.
+
+### Friction 36: Shareable Receipt URL Too Long
+
+- **Task Attempted:** Made every run produce a shareable URL so anyone can replay and audit it.
+- **Steps Taken:** Encoded {stateHistory, auditLog, before, after, timestamp} as base64 JSON and appended it to /run/[id]. Copied via navigator.clipboard.
+- **Expected:** The resulting URL should fit comfortably in browsers, chat apps, and markdown links.
+- **Actual:** Base64-encoded JSON produced URLs of ~1500+ characters, close to practical URL-length limits (Vercel ~2KB) and ugly to share.
+- **Severity:** Major
+- **Workaround:** Switched to LZ-string compression with URL-safe encoding (compressToEncodedURIComponent). URLs dropped to ~400 characters — under 70% reduction. Kept base64 fallback for backward compatibility.
+- **Actionable Suggestion:** Shared-state-in-URL is a common pattern but rarely documented with size budgets. Web frameworks should ship a first-class "compressed-URL state" utility, or docs should default to LZ-string for JSON payloads.
+
 ## Summary Statistics
 
-- **Total frictions documented:** 32
+- **Total frictions documented:** 36
 - **Days of development:** 11
 - **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode, Vercel
 - **Key categories:** Environment setup, MCP protocol compliance, state-machine event sourcing, browser API quirks, React async sequencing, cloud deployment, cross-AI validation
