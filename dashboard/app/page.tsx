@@ -58,16 +58,9 @@ export default function Home() {
       return;
     }
 
-    const payload = {
-      stateHistory,
-      auditLog,
-      before: diff.before,
-      after: diff.after,
-      timestamp: Date.now(),
-    };
-    const encoded = LZString.compressToEncodedURIComponent(
-      JSON.stringify(payload),
-    );
+    const { before, after } = diff;
+    const payload = { stateHistory, auditLog, before, after, timestamp: Date.now() };
+    const encoded = LZString.compressToEncodedURIComponent(JSON.stringify(payload));
     const url = `${window.location.origin}/run/${encoded}`;
 
     try {

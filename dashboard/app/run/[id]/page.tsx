@@ -45,36 +45,42 @@ const states = new Set<State>([
   "ESCALATE",
 ]);
 
-function decodeReceipt(id: string): RunReceipt {
-  let payload: unknown;
-  try {
-    // Primary: LZ-string decompression (current encoder format)
-    const decompressed = LZString.decompressFromEncodedURIComponent(id);
-    if (decompressed) {
-      payload = JSON.parse(decompressed);
-    } else {
-      // Fallback: old base64 format (for backward compatibility with older shared links)
-      const decoded = decodeURIComponent(escape(atob(id)));
-      payload = JSON.parse(decoded);
+function decodeReceipt(rawId: string): any {
+  const attempts: Array<[string, () => any]> = [
+    // 1. LZ-string with URI-safe encoding (current encoder)
+    ["LZString URI-safe", () => {
+      const s = LZString.decompressFromEncodedURIComponent(rawId);
+      return s ? JSON.parse(s) : null;
+    }],
+    // 2. LZ-string with URL-decoding first (in case Next.js modified the param)
+    ["LZString URI-safe + decodeURIComponent", () => {
+      const s = LZString.decompressFromEncodedURIComponent(decodeURIComponent(rawId));
+      return s ? JSON.parse(s) : null;
+    }],
+    // 3. LZ-string base64 variant
+    ["LZString Base64", () => {
+      const s = LZString.decompressFromBase64(rawId);
+      return s ? JSON.parse(s) : null;
+    }],
+    // 4. Legacy base64 (very first version)
+    ["Legacy Base64", () => {
+      const decoded = decodeURIComponent(escape(atob(rawId)));
+      return JSON.parse(decoded);
+    }],
+  ];
+
+  for (const [name, attempt] of attempts) {
+    try {
+      const result = attempt();
+      if (result) {
+        console.log(`Receipt decoded using: ${name}`);
+        return result;
+      }
+    } catch (e) {
+      console.warn(`Decode attempt failed (${name}):`, e);
     }
-  } catch (err) {
-    console.error("Receipt decode failed:", err);
-    throw err;
   }
-
-  const parsed = payload as RunReceipt;
-
-  if (
-    !Array.isArray(parsed.stateHistory) ||
-    !Array.isArray(parsed.auditLog) ||
-    typeof parsed.before !== "string" ||
-    typeof parsed.after !== "string" ||
-    typeof parsed.timestamp !== "number"
-  ) {
-    throw new Error("Invalid run receipt.");
-  }
-
-  return parsed;
+  throw new Error("All decode methods failed");
 }
 
 function simpleHash(value: string): string {

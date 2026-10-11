@@ -43,6 +43,7 @@
 - [Friction 34: TTS Engine Spells Out camelCase Identifiers](#friction-34-tts-engine-spells-out-camelcase-identifiers)
 - [Friction 35: Voice Command Trigger Too Loose](#friction-35-voice-command-trigger-too-loose)
 - [Friction 36: Shareable Receipt URL Too Long](#friction-36-shareable-receipt-url-too-long)
+- [Friction 37: Receipt Decoder Mismatch — LZ-string vs Base64](#friction-37-receipt-decoder-mismatch--lz-string-vs-base64)
 - [Product Feedback Summary](#product-feedback-summary)
 
 ---
@@ -472,9 +473,19 @@
 - **Workaround:** Switched to LZ-string compression with URL-safe encoding (compressToEncodedURIComponent). URLs dropped to ~400 characters — under 70% reduction. Kept base64 fallback for backward compatibility.
 - **Actionable Suggestion:** Shared-state-in-URL is a common pattern but rarely documented with size budgets. Web frameworks should ship a first-class "compressed-URL state" utility, or docs should default to LZ-string for JSON payloads.
 
+### Friction 37: Receipt Decoder Mismatch — LZ-string vs Base64
+
+- **Task Attempted:** Made shareable run receipts work end-to-end. Encoder compressed the payload, decoder on /run/[id] decompressed it.
+- **Steps Taken:** Updated encoder to use LZString.compressToEncodedURIComponent(). Deployed to localhost and Vercel. Tested receipt URL.
+- **Expected:** Receipt page should decode and render the run replay.
+- **Actual:** Receipt page crashed with `InvalidCharacterError: Failed to execute 'atob' on 'Window': The string to be decoded is not correctly encoded.` — the decoder was still using atob (base64) on an LZ-string-encoded payload.
+- **Severity:** Major
+- **Workaround:** Rewrote the decoder to try 3 formats in order: (1) LZString.decompressFromEncodedURIComponent, (2) LZString.decompressFromBase64, (3) raw atob + JSON.parse. Each with try-catch so it falls through gracefully.
+- **Actionable Suggestion:** Compression and encoding libraries should ship paired encode/decode helpers with a version marker embedded in the output string (like a magic prefix `lz1:` vs `b64:`). This would let decoders auto-detect the format without guessing. URL-state sharing is a common pattern that needs a first-class "versioned codec" abstraction.
+
 ## Summary Statistics
 
-- **Total frictions documented:** 36
+- **Total frictions documented:** 37
 - **Days of development:** 11
 - **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode, Vercel
 - **Key categories:** Environment setup, MCP protocol compliance, state-machine event sourcing, browser API quirks, React async sequencing, cloud deployment, cross-AI validation
