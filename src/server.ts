@@ -1,8 +1,55 @@
 import { createActor } from 'xstate';
 import { FastMCP } from 'fastmcp';
 import { z } from 'zod';
+import path from 'node:path';
+import fs from 'node:fs';
 import { devCompanionMachine } from './state_machine.js';
 import { readFileTool, searchSymbolsTool, runTestsTool, applyPatchTool } from './tools.js';
+
+const ALLOWED_ORIGINS = [
+	'http://localhost:3000',
+	'http://localhost:6274',
+	'https://devcompanion-ai.vercel.app',
+];
+
+// Security note: Origin validation is defense-in-depth against DNS-rebinding.
+// It is NOT a substitute for authentication. Do not rely on it alone.
+function validateOrigin(origin: string | undefined): boolean {
+	if (!origin) return true; // allow no-origin for non-browser clients like MCP Inspector
+	return ALLOWED_ORIGINS.includes(origin);
+}
+
+const SANDBOX_ROOT = path.resolve(process.cwd(), 'sandbox');
+
+function safeResolvePath(userPath: string): string {
+	// Resolve the user-supplied path against cwd
+	const resolved = path.resolve(process.cwd(), userPath);
+
+	// Canonicalize the sandbox root (must exist)
+	const realRoot = fs.realpathSync(SANDBOX_ROOT);
+
+	let realTarget: string;
+	try {
+		// File exists — canonicalize it (resolves symlinks)
+		realTarget = fs.realpathSync(resolved);
+	} catch {
+		// File doesn't exist yet — canonicalize parent, then append filename
+		const parent = path.dirname(resolved);
+		try {
+			const realParent = fs.realpathSync(parent);
+			realTarget = path.resolve(realParent, path.basename(resolved));
+		} catch {
+			realTarget = resolved;
+		}
+	}
+
+	// Final check: must be inside sandbox
+	if (!realTarget.startsWith(realRoot + path.sep) && realTarget !== realRoot) {
+		throw new Error(`Path outside sandbox — rejected: ${userPath}`);
+	}
+
+	return realTarget;
+}
 
 const server = new FastMCP({
 	name: 'DevCompanion-AI',
@@ -67,7 +114,8 @@ server.addTool({
 		filePath: z.string(),
 	}),
 	execute: async ({ filePath }) => {
-		const result = readFileTool(filePath);
+		const safePath = safeResolvePath(filePath);
+		const result = readFileTool(safePath);
 		return { content: [{ type: 'text', text: JSON.stringify(result) }] };
 	},
 });
@@ -80,7 +128,8 @@ server.addTool({
 		symbolName: z.string(),
 	}),
 	execute: async ({ directory, symbolName }) => {
-		const result = searchSymbolsTool(directory, symbolName);
+		const safeDir = safeResolvePath(directory);
+		const result = searchSymbolsTool(safeDir, symbolName);
 		return { content: [{ type: 'text', text: JSON.stringify(result) }] };
 	},
 });
@@ -106,7 +155,8 @@ server.addTool({
 		newContent: z.string(),
 	}),
 	execute: async ({ filePath, originalContent, newContent }) => {
-		const result = applyPatchTool(filePath, originalContent, newContent);
+		const safePath = safeResolvePath(filePath);
+		const result = applyPatchTool(safePath, originalContent, newContent);
 		return { content: [{ type: 'text', text: JSON.stringify(result) }] };
 	},
 });
@@ -195,6 +245,17 @@ server.addTool({
 		};
 	},
 });
+
+const app = (server as any).getHttpApp?.();
+if (app && typeof app.use === 'function') {
+	app.use('*', async (c: any, next: any) => {
+		const origin = c.req.header('Origin');
+		if (!validateOrigin(origin)) {
+			return c.json({ error: 'Forbidden origin' }, 403);
+		}
+		return next();
+	});
+}
 
 await server.start({
 	transportType: 'httpStream',
