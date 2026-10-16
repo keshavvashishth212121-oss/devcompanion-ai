@@ -15,6 +15,11 @@ DevCompanion AI is a self-hosted [Model Context Protocol (MCP)](https://modelcon
 
 The project was built for the **Amazon Developer Hackathon (Alexa+ Track)**. It is designed to turn a bug report into a reproducible, reviewable, and verified patch while keeping execution under the developer's control.
 
+## Key Features
+
+- **Real test execution** — The FSM runs an actual Node.js test suite (`node --test`). No echo simulation. Failures are assertions; successes are verified passing tests.
+- **Security-hardened MCP server** — Path traversal protection (paths canonicalized via `fs.realpathSync`, restricted to sandbox), Origin header validation per spec 2025-11-25, and fixed-enum command execution (no arbitrary shell commands).
+
 ## Architecture
 
 DevCompanion AI is organized into six cooperating planes:
@@ -27,6 +32,15 @@ DevCompanion AI is organized into six cooperating planes:
 | **Execution (Sandbox)** | Reads source, searches symbols, runs commands, and applies targeted patches in the target repository or sandbox. |
 | **Presentation (UI)** | Streams state and progress updates so a client can show the run as it happens. |
 | **Observability (Audit Log)** | Records state entries, triggering events, timestamps, and cost context for each run. |
+
+**Trust boundaries:**
+
+| Boundary | Enforcement |
+|----------|-------------|
+| Filesystem writes | Restricted to `sandbox/` via `safeResolvePath()` |
+| Test execution | Fixed enum (`sandbox`, `typescript`) — no arbitrary commands |
+| Browser origin | Origin allowlist per MCP spec 2025-11-25 |
+| Cryptographic receipt | SHA-256 hash of {stateHistory, auditLog, before, after, timestamp} |
 
 ```text
 MCP Client

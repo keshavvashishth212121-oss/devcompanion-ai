@@ -44,6 +44,7 @@
 - [Friction 35: Voice Command Trigger Too Loose](#friction-35-voice-command-trigger-too-loose)
 - [Friction 36: Shareable Receipt URL Too Long](#friction-36-shareable-receipt-url-too-long)
 - [Friction 37: Receipt Decoder Mismatch — LZ-string vs Base64](#friction-37-receipt-decoder-mismatch--lz-string-vs-base64)
+- [Friction 38: Path Traversal and Origin Validation Gaps in MCP Server](#friction-38-path-traversal-and-origin-validation-gaps-in-mcp-server)
 - [Product Feedback Summary](#product-feedback-summary)
 
 ---
@@ -483,9 +484,19 @@
 - **Workaround:** Rewrote the decoder to try 3 formats in order: (1) LZString.decompressFromEncodedURIComponent, (2) LZString.decompressFromBase64, (3) raw atob + JSON.parse. Each with try-catch so it falls through gracefully.
 - **Actionable Suggestion:** Compression and encoding libraries should ship paired encode/decode helpers with a version marker embedded in the output string (like a magic prefix `lz1:` vs `b64:`). This would let decoders auto-detect the format without guessing. URL-state sharing is a common pattern that needs a first-class "versioned codec" abstraction.
 
+### Friction 38: Path Traversal and Origin Validation Gaps in MCP Server
+
+- **Task Attempted:** Hardened the MCP server before hackathon submission. The server exposes file-modification tools over public Streamable HTTP.
+- **Steps Taken:** Reviewed all tools accepting filePath arguments. Tested with `../../../etc/passwd` and `../../../tmp/evil.js`. Verified Origin header handling.
+- **Expected:** The server should reject paths outside the sandbox and validate Origin per MCP spec 2025-11-25.
+- **Actual:** Both vulnerabilities were present — `read_file` and `apply_patch` accepted arbitrary paths, and no Origin validation existed. A remote caller could read or write any file on the host.
+- **Severity:** Critical
+- **Workaround:** Added `safeResolvePath()` that canonicalizes paths via `fs.realpathSync` and rejects anything outside `sandbox/`. Added Origin allowlist middleware aligned with spec 2025-11-25. Verified both: traversal returns "Path outside sandbox — rejected"; legit paths still work.
+- **Actionable Suggestion:** MCP server SDKs should ship a first-class `restrictToDirectory(root)` helper, similar to how Express has `express.static`. Every file-touching MCP tool currently reinvents path validation, and most do it incorrectly. The spec should include a reference implementation.
+
 ## Summary Statistics
 
-- **Total frictions documented:** 37
+- **Total frictions documented:** 38
 - **Days of development:** 11
 - **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode, Vercel
 - **Key categories:** Environment setup, MCP protocol compliance, state-machine event sourcing, browser API quirks, React async sequencing, cloud deployment, cross-AI validation
