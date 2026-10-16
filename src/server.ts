@@ -87,13 +87,12 @@ server.addTool({
 
 server.addTool({
 	name: 'run_tests',
-	description: 'Run a test command.',
+	description: 'Run a fixed test suite.',
 	parameters: z.object({
-		command: z.string(),
-		workingDir: z.string().optional(),
+		testType: z.enum(['sandbox', 'typescript']),
 	}),
-	execute: async ({ command, workingDir }) => {
-		const result = runTestsTool(command, workingDir);
+	execute: async ({ testType }) => {
+		const result = runTestsTool(testType);
 		return { content: [{ type: 'text', text: JSON.stringify(result) }] };
 	},
 });

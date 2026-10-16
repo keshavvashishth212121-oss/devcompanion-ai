@@ -16,12 +16,14 @@ export async function POST() {
 			'..',
 			'sandbox',
 			'src',
-			'buggy_code.ts',
+			'buggy_code.js',
 		);
-		const buggyContent = `export function addNumbers(a: number, b: number): number {
+		const buggyContent = `function addNumbers(a, b) {
   // BUG: Should be a + b, not a - b
   return a - b;
-}`;
+}
+
+module.exports = { addNumbers };`;
 
 		try {
 			writeFileSync(sandboxPath, buggyContent, 'utf-8');

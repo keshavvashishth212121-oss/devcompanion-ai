@@ -9,11 +9,11 @@ const machineSetup = setup({
 	},
 	actors: {
 		reproduceBug: fromPromise(async () => {
-			const result = runTestsTool('echo "Running tests..."', './sandbox');
-			if (result.exitCode !== 0) {
-				throw new Error(`Failed to reproduce bug: ${result.stderr}`);
+			const result = runTestsTool('sandbox');
+			if (result.exitCode === 0) {
+				throw new Error('Bug not reproduced — test passed unexpectedly');
 			}
-			return result;
+			return { reproduced: true, output: result.stdout + result.stderr };
 		}),
 		findSymbol: fromPromise(async () => {
 			const result = searchSymbolsTool('./sandbox/src', 'addNumbers');
@@ -24,7 +24,7 @@ const machineSetup = setup({
 		}),
 		applyFix: fromPromise(async () => {
 			const result = applyPatchTool(
-				'./sandbox/src/buggy_code.ts',
+				'./sandbox/src/buggy_code.js',
 				'return a - b;',
 				'return a + b;',
 			);
@@ -34,11 +34,11 @@ const machineSetup = setup({
 			return result;
 		}),
 		verifyFix: fromPromise(async () => {
-			const result = runTestsTool('echo "Verification passed"', './sandbox');
+			const result = runTestsTool('sandbox');
 			if (result.exitCode !== 0) {
-				throw new Error(`Failed to verify fix: ${result.stderr}`);
+				throw new Error(`Verification failed: ${result.stderr || result.stdout}`);
 			}
-			return result;
+			return { verified: true, output: result.stdout };
 		}),
 		llmCritique: fromPromise(async () => {
 			console.log('Running adversarial critique with second model...');

@@ -17,7 +17,7 @@ import VoiceCommand, { speak } from "./components/VoiceCommand";
 function forSpeech(text: string): string {
   return text
     .replace(/addNumbers/g, "add numbers")
-    .replace(/buggy_code\.ts/g, "buggy code")
+    .replace(/buggy_code\.js/g, "buggy code")
     .replace(/sandbox/g, "sandbox");
 }
 

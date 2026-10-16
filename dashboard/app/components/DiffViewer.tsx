@@ -50,7 +50,7 @@ function DiffViewer({ before, after }: DiffViewerProps) {
     <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
       <header className="border-b border-slate-800 px-4 py-3">
         <h2 className="font-mono text-xs font-semibold text-slate-300">
-          Diff: sandbox/src/buggy_code.ts
+          Diff: sandbox/src/buggy_code.js
         </h2>
       </header>
       <div className="grid grid-cols-1 divide-y divide-slate-800 md:grid-cols-2 md:divide-x md:divide-y-0">

@@ -50,31 +50,39 @@ export function searchSymbolsTool(
 }
 
 export function runTestsTool(
-	command: string,
-	workingDir?: string,
+	testType: 'sandbox' | 'typescript',
 ): { exitCode: number; stdout: string; stderr: string } {
+	const COMMANDS: Record<string, string> = {
+		sandbox: 'node --test sandbox/test/addNumbers.test.js',
+		typescript: 'npx tsc --noEmit',
+	};
+
+	const command = COMMANDS[testType];
+	if (!command) {
+		return { exitCode: 1, stdout: '', stderr: `Unknown test type: ${testType}` };
+	}
+
 	try {
 		const stdout = execSync(command, {
-			cwd: workingDir,
-			encoding: 'utf-8',
-			stdio: ['ignore', 'pipe', 'pipe'],
-		});
+			cwd: process.cwd(),
+			timeout: 30000,
+			maxBuffer: 1024 * 1024,
+			stdio: 'pipe',
+		}).toString();
+
 		return { exitCode: 0, stdout, stderr: '' };
 	} catch (error: unknown) {
-		if (typeof error === 'object' && error !== null) {
-			const commandError = error as {
-				status?: number;
-				stdout?: string | Buffer;
-				stderr?: string | Buffer;
-			};
-			return {
-				exitCode: commandError.status ?? 1,
-				stdout: commandError.stdout?.toString() ?? '',
-				stderr: commandError.stderr?.toString() ?? '',
-			};
-		}
+		const commandError = error as {
+			status?: number;
+			stdout?: string | Buffer;
+			stderr?: string | Buffer;
+		};
 
-		return { exitCode: 1, stdout: '', stderr: String(error) };
+		return {
+			exitCode: commandError.status ?? 1,
+			stdout: commandError.stdout?.toString() ?? '',
+			stderr: commandError.stderr?.toString() ?? String(error),
+		};
 	}
 }
 
