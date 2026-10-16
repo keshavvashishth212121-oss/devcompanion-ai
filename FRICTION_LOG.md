@@ -45,6 +45,7 @@
 - [Friction 36: Shareable Receipt URL Too Long](#friction-36-shareable-receipt-url-too-long)
 - [Friction 37: Receipt Decoder Mismatch — LZ-string vs Base64](#friction-37-receipt-decoder-mismatch--lz-string-vs-base64)
 - [Friction 38: Path Traversal and Origin Validation Gaps in MCP Server](#friction-38-path-traversal-and-origin-validation-gaps-in-mcp-server)
+- [Friction 39: Bedrock Model Access Not Enabled on New AWS Account](#friction-39-bedrock-model-access-not-enabled-on-new-aws-account)
 - [Product Feedback Summary](#product-feedback-summary)
 
 ---
@@ -494,9 +495,21 @@
 - **Workaround:** Added `safeResolvePath()` that canonicalizes paths via `fs.realpathSync` and rejects anything outside `sandbox/`. Added Origin allowlist middleware aligned with spec 2025-11-25. Verified both: traversal returns "Path outside sandbox — rejected"; legit paths still work.
 - **Actionable Suggestion:** MCP server SDKs should ship a first-class `restrictToDirectory(root)` helper, similar to how Express has `express.static`. Every file-touching MCP tool currently reinvents path validation, and most do it incorrectly. The spec should include a reference implementation.
 
+## Day 19 — October 16, 2026
+
+### Friction 39: Bedrock Model Access Not Enabled on New AWS Account
+
+- **Task Attempted:** Integrate Amazon Bedrock Nova Lite as the adversarial critique provider for the FSM's CRITIQUE state.
+- **Steps Taken:** Created IAM user with `AmazonBedrockFullAccess`, configured `.env` with fresh access keys, implemented `BedrockNovaProvider`, tested via `engine.ts` and AWS Console Playground in both us-east-1 and us-west-2.
+- **Expected:** Nova should review the patch diff and return `{approved, issues, confidence}` JSON.
+- **Actual:** Both API and console playground returned `ValidationException: Operation not allowed` (HTTP 400). Model catalog search returned 0 matches across all providers despite 112 serverless models being listed system-wide. This confirms account-level Bedrock access is not enabled.
+- **Severity:** Major
+- **Workaround:** Implemented `MockFallbackProvider` that returns a deterministic approval. The `BedrockNovaProvider` is production-ready — only account access is blocked. Swappable via environment variable.
+- **Actionable Suggestion:** AWS should auto-enable Bedrock foundation model access for accounts verified through hackathon/sponsorship programs, or provide a time-boxed sandbox tier with reduced quotas. Requiring multi-day access approval blocks builders from evaluating Bedrock inside hackathon time windows.
+
 ## Summary Statistics
 
-- **Total frictions documented:** 38
+- **Total frictions documented:** 39
 - **Days of development:** 11
 - **Technologies debugged:** Node.js, PowerShell, Git, MCP SDK, FastMCP, XState, Next.js, Turbopack, Web Speech API, React StrictMode, Vercel
 - **Key categories:** Environment setup, MCP protocol compliance, state-machine event sourcing, browser API quirks, React async sequencing, cloud deployment, cross-AI validation

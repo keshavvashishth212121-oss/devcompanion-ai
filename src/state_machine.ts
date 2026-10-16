@@ -1,6 +1,34 @@
 import { randomUUID } from 'crypto';
 import { assign, fromPromise, setup } from 'xstate';
 import { readFileTool, searchSymbolsTool, runTestsTool, applyPatchTool } from './tools.js';
+import { getCritiqueProvider } from './reasoning/bedrock_provider.js';
+
+const llmCritique = fromPromise(async ({ context }: { context: any }) => {
+	console.log('[CRITIQUE] Running adversarial critique via Bedrock...');
+	try {
+		const provider = getCritiqueProvider();
+		const diff = context?.artifacts?.latestPatch?.diff || '';
+		const bugDescription = context?.issueDescription || '';
+		const testOutput = context?.artifacts?.testOutput || '';
+		const result = await provider.critique({ diff, bugDescription, testOutput });
+		console.log(
+			`[CRITIQUE] Model: ${result.model}, Approved: ${result.approved}, Confidence: ${result.confidence}, Latency: ${result.latencyMs}ms`,
+		);
+		if (!result.approved) {
+			throw new Error(`Critique rejected: ${result.issues.join('; ')}`);
+		}
+		return result;
+	} catch (error: any) {
+		console.error('===== CRITIQUE ERROR =====');
+		console.error('Name:', error.name);
+		console.error('Message:', error.message);
+		console.error('Code:', error.Code || error.code);
+		console.error('Full:', JSON.stringify(error, null, 2));
+		if (error.$metadata) console.error('AWS Metadata:', JSON.stringify(error.$metadata, null, 2));
+		if (error.stack) console.error('Stack:', error.stack);
+		throw error;
+	}
+});
 
 const machineSetup = setup({
 	types: {
@@ -39,9 +67,6 @@ const machineSetup = setup({
 				throw new Error(`Verification failed: ${result.stderr || result.stdout}`);
 			}
 			return { verified: true, output: result.stdout };
-		}),
-		llmCritique: fromPromise(async () => {
-			console.log('Running adversarial critique with second model...');
 		}),
 	},
 	guards: {
@@ -238,7 +263,7 @@ export const stateMachine = machineSetup.createMachine({
 				],
 			}),
 			invoke: {
-				src: 'llmCritique',
+				src: llmCritique,
 				onDone: 'VERIFIED',
 				onError: 'DIAGNOSE',
 			},
