@@ -55,7 +55,7 @@ export default function Hero() {
 
         <p className="mt-8 text-sm text-zinc-500 font-mono">
           Every run produces a shareable, verifiable receipt.{" "}
-          <span className="text-emerald-400">Don&apos;t trust. Audit.</span>
+          <span className="text-emerald-400">Don&apos;t trust. Audit it.</span>
         </p>
       </div>
     </section>
