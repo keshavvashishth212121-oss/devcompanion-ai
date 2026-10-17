@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Activity, Mic, Terminal } from "lucide-react";
 import LZString from "lz-string";
 import { useState } from "react";
 import StateMachine from "./components/StateMachine";
@@ -198,16 +199,32 @@ export default function Home() {
 
   return (
     <>
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-zinc-950 to-black"></div>
       <SuccessPulse trigger={result !== null} />
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-[20%] -left-[10%] h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[30%] -right-[10%] h-[600px] w-[600px] rounded-full bg-indigo-500/10 blur-[120px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute -bottom-[20%] left-[20%] h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-[100px] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+      </div>
       <Hero />
-      <main id="dashboard" className="relative min-h-screen px-5 py-6 text-slate-100 sm:px-8 lg:px-12">
+      <main id="dashboard" className="relative z-10 min-h-screen px-5 py-6 pt-16 text-slate-100 sm:px-8 lg:px-12">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col">
-        <header className="mb-8 flex flex-col gap-5 border-b border-slate-800 pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-display mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-400">
+        <div className="fixed left-0 right-0 top-0 z-40 border-b border-white/[0.06] bg-slate-950/80 px-6 py-3 backdrop-blur-xl">
+          <div className="flex items-center justify-between">
+            <span className="font-display text-sm font-semibold text-emerald-400">
+              DevCompanion AI
+            </span>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 font-mono text-xs text-emerald-400">
+              MCP 2025-11-25
+            </span>
+          </div>
+        </div>
+        <header className="mb-8 flex flex-col gap-4 border-b border-slate-800 pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="font-display mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-400">
               Autonomous developer companion
             </p>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h1 className="font-display text-xl font-semibold tracking-tight text-white bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent drop-shadow-sm sm:text-2xl">
               DevCompanion AI{" "}
               <span className="text-slate-500">—</span>{" "}
               <span className="text-slate-300">
@@ -216,25 +233,25 @@ export default function Home() {
             </h1>
           </div>
           <button
-            type="button"
-            onClick={() => void startRun()}
-            disabled={isRunning}
-            className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 transition hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-          >
-            {isRunning ? "Fix in progress..." : "Run Autonomous Fix"}
-          </button>
+             type="button"
+             onClick={() => void startRun()}
+             disabled={isRunning}
+             className="shrink-0 whitespace-nowrap rounded-lg bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-400/50 transition hover:scale-[1.02] hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              >
+  {isRunning ? "Fix in progress..." : "Run Autonomous Fix"}
+</button>
         </header>
 
         <div className="grid flex-1 gap-6 lg:grid-cols-3">
-          <section className="rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl lg:col-span-2">
+          <section className="premium-card lg:col-span-2">
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              whileHover={{ scale: 1.005 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-md shadow-2xl">
-                <h2 className="font-display mb-4 text-center text-sm font-semibold text-white">
+              <div className="premium-card mb-6 p-5">
+                <h2 className="font-display mb-4 text-center text-lg font-semibold text-white">
+                  <Mic className="mr-2 inline h-4 w-4 text-emerald-400" />
                   Alexa+ Voice Interface
                 </h2>
                 <VoiceCommand
@@ -246,7 +263,10 @@ export default function Home() {
             </motion.div>
             <div className="mb-3 flex items-center justify-between px-1">
               <div>
-                <h2 className="font-display font-semibold text-white">Execution flow</h2>
+                <h2 className="font-display text-lg font-semibold text-white">
+                  <Terminal className="mr-2 inline h-4 w-4 text-emerald-400" />
+                  Execution flow
+                </h2>
                 <p className="font-body mt-1 text-sm text-slate-400">
                   Live state progression from intake to verified fix
                 </p>
@@ -256,28 +276,38 @@ export default function Home() {
               </span>
             </div>
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              whileHover={{ scale: 1.005 }}
+              transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
             >
-              <StateMachine
-                currentState={sessionState}
-                stateHistory={visibleStateHistory}
-              />
+              <div className="relative">
+                <div
+                  className="pointer-events-none absolute inset-0 -z-10 opacity-40"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 50% 40%, rgba(16,185,129,0.15), transparent 60%)",
+                  }}
+                />
+                <StateMachine
+                  currentState={sessionState}
+                  stateHistory={visibleStateHistory}
+                />
+              </div>
             </motion.div>
           </section>
 
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 24 }}
-            whileHover={{ scale: 1.005 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
           >
-            <aside className="flex min-h-[480px] flex-col rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-md shadow-2xl">
+            <aside className="premium-card flex min-h-[480px] flex-col p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-display font-semibold text-white">Run activity</h2>
+                <h2 className="font-display text-lg font-semibold text-white">
+                  <Activity className="mr-2 inline h-4 w-4 text-emerald-400" />
+                  Run activity
+                </h2>
                 <p className="font-body mt-1 text-sm text-slate-400">Live execution log</p>
               </div>
               <span
@@ -356,12 +386,14 @@ export default function Home() {
         {result && (
           <>
             <motion.div
-              className="font-body mt-6 rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl"
-              initial={{ opacity: 0, y: 8 }}
+              className="premium-card font-body mt-6"
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              whileHover={{ scale: 1.005 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
+              <p className="font-display mb-3 px-5 pt-5 text-xs uppercase tracking-widest text-slate-500">
+                Run Metrics
+              </p>
               <MetricsPanel
                 stateHistory={stateHistory}
                 durationMs={durationMs}
@@ -369,7 +401,7 @@ export default function Home() {
             </motion.div>
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
               <motion.div
-                className="font-mono text-xs rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl lg:col-span-2"
+                className="premium-card font-mono text-xs lg:col-span-2"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 24 }}
@@ -378,7 +410,7 @@ export default function Home() {
                 {diff && <DiffViewer before={diff.before} after={diff.after} />}
               </motion.div>
               <motion.div
-                className="font-mono rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl shadow-2xl"
+                className="premium-card font-mono"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 24 }}

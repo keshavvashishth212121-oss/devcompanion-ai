@@ -45,6 +45,9 @@ function DiffViewer({ before, after }: DiffViewerProps) {
   const beforeLines = splitLines(before);
   const afterLines = splitLines(after);
   const lineCount = Math.max(beforeLines.length, afterLines.length);
+  const changedLineIndices = Array.from({ length: lineCount }, (_, index) => index).filter(
+    (index) => beforeLines[index] !== afterLines[index],
+  );
 
   return (
     <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
@@ -55,7 +58,7 @@ function DiffViewer({ before, after }: DiffViewerProps) {
       </header>
       <div className="grid grid-cols-1 divide-y divide-slate-800 md:grid-cols-2 md:divide-x md:divide-y-0">
         <div className="overflow-x-auto">
-          {Array.from({ length: lineCount }, (_, index) => {
+          {changedLineIndices.map((index) => {
             const beforeLine = beforeLines[index] ?? "";
             const afterLine = afterLines[index] ?? "";
             return (
@@ -71,7 +74,7 @@ function DiffViewer({ before, after }: DiffViewerProps) {
           })}
         </div>
         <div className="overflow-x-auto">
-          {Array.from({ length: lineCount }, (_, index) => {
+          {changedLineIndices.map((index) => {
             const beforeLine = beforeLines[index] ?? "";
             const afterLine = afterLines[index] ?? "";
             return (

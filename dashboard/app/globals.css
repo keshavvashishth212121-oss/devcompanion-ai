@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -11,28 +11,31 @@
   --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background-color: var(--background);
+  /* The subtle cyber-grid */
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-attachment: fixed;
+  color: var(--foreground);
+  min-height: 100vh;
+  position: relative;
 }
 
-body {
-  background:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(99, 102, 241, 0.08) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 80% 80%,
-      rgba(168, 85, 247, 0.06) 0%,
-      transparent 50%
-    ),
-    #0a0a0f;
-  min-height: 100vh;
-  color: var(--foreground);
+/* The cinematic spotlight at the top of the page */
+body::before {
+  content: "";
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 80vh;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.15) 0%, rgba(9, 9, 11, 0) 60%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .font-display {
@@ -47,19 +50,26 @@ body {
   font-family: var(--font-mono);
 }
 
-body::before {
-  content: "";
-  position: fixed;
+/* The Vercel-style premium card */
+.premium-card {
+  @apply relative overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/40 backdrop-blur-xl;
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.4), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* The top highlight line on cards (makes it look 3D) */
+.premium-card::before {
+  content: '';
+  position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: radial-gradient(
-    circle,
-    rgba(148, 163, 184, 0.08) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
-  pointer-events: none;
-  z-index: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+::selection {
+  background-color: rgba(16, 185, 129, 0.3);
+  color: white;
 }

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { GitBranch } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 type State =
@@ -75,6 +76,7 @@ function StateMachine({ currentState, stateHistory }: StateMachineProps) {
   return (
     <section className="w-full rounded-xl border border-slate-700 bg-slate-900 p-4 text-slate-100 shadow-lg">
       <h2 className="mb-3 text-lg font-semibold tracking-tight">
+        <GitBranch className="mr-2 inline h-4 w-4 text-emerald-400" />
         State machine
       </h2>
       <svg
@@ -82,12 +84,21 @@ function StateMachine({ currentState, stateHistory }: StateMachineProps) {
         viewBox="0 0 640 400"
         role="img"
         aria-labelledby="state-machine-title state-machine-description"
+        style={{ filter: "drop-shadow(0px 0px 10px rgba(16,185,129,0.2))" }}
       >
         <title id="state-machine-title">DevCompanion fix state machine</title>
         <desc id="state-machine-description">
           Current state is {currentState}. Completed states are shown in green.
         </desc>
         <defs>
+          <pattern
+            id="state-machine-grid"
+            width="24"
+            height="24"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="1" cy="1" r="1" fill="#52525b" opacity="0.25" />
+          </pattern>
           <marker
             id="state-machine-arrow"
             markerWidth="8"
@@ -111,16 +122,26 @@ function StateMachine({ currentState, stateHistory }: StateMachineProps) {
             <path d="M 0 0 L 8 4 L 0 8 z" fill="#f97316" />
           </marker>
         </defs>
+        <rect width="100%" height="100%" fill="url(#state-machine-grid)" />
 
-        <g
-          fill="none"
-          stroke="#64748b"
-          strokeWidth="2"
-          markerEnd="url(#state-machine-arrow)"
-        >
-          {transitions.map(([from, to]) => (
-            <path key={`${from}-${to}`} d={edgePath(from, to)} />
-          ))}
+        <g fill="none" markerEnd="url(#state-machine-arrow)">
+          {transitions.map(([from, to]) => {
+            const isActive = from === currentState || to === currentState;
+
+            return (
+              <path
+                key={`${from}-${to}`}
+                d={edgePath(from, to)}
+                stroke={isActive ? "#10b981" : "#3f3f46"}
+                strokeWidth={isActive ? "2" : "1.5"}
+                style={
+                  isActive
+                    ? { filter: "drop-shadow(0 0 8px rgba(16,185,129,0.5))" }
+                    : undefined
+                }
+              />
+            );
+          })}
         </g>
         <g
           fill="none"
@@ -141,29 +162,44 @@ function StateMachine({ currentState, stateHistory }: StateMachineProps) {
             ? "#f59e0b"
             : isCompleted
               ? "#064e3b"
-              : "#1e293b";
+              : "#18181b";
           const stroke = isCurrent
             ? "#fbbf24"
             : isCompleted
               ? "#10b981"
-              : "#475569";
+              : "#3f3f46";
           const text = isCurrent
-            ? "#000000"
+            ? "#000"
             : isCompleted
-              ? "#6ee7b7"
-              : "#94a3b8";
+              ? "#34d399"
+              : "#a1a1aa";
 
           return (
             <g
               key={state}
               className={isCurrent ? "animate-pulse" : undefined}
             >
-              <circle cx={x} cy={y} r="32" fill={fill} stroke={stroke} strokeWidth="2" />
+              <circle
+                cx={x}
+                cy={y}
+                r="32"
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={isCurrent || isCompleted ? "2" : "1.5"}
+                style={
+                  isCurrent
+                    ? { filter: "drop-shadow(0 0 15px rgba(245,158,11,0.8))" }
+                    : isCompleted
+                      ? { filter: "drop-shadow(0 0 8px rgba(16,185,129,0.5))" }
+                      : undefined
+                }
+              />
               <text
                 x={x}
                 y={y}
                 fill={text}
                 fontSize="11"
+                className="font-mono font-bold text-sm tracking-widest"
                 textAnchor="middle"
                 dominantBaseline="middle"
               >
